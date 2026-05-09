@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, Sparkles, ChevronDown } from "lucide-react";
+import MagneticButton from "@/components/MagneticButton";
 import type { Trial } from "@/lib/clinicaltrials";
 
 interface Message {
@@ -278,7 +279,7 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
       )}
 
       {/* ── Floating trigger button ── */}
-      <button
+      <MagneticButton
         onClick={() => setIsOpen((o) => !o)}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full font-semibold text-sm transition-all duration-200"
         style={{
@@ -290,7 +291,6 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
             ? "0 8px 24px rgba(0,0,0,0.25)"
             : "0 8px 32px rgba(38,119,199,0.4), 0 2px 8px rgba(0,0,0,0.12)",
         }}
-        aria-label={isOpen ? "Close AI Agent" : "Open AI Agent"}
       >
         {isOpen ? (
           <>
@@ -303,7 +303,7 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
             AI Agent
           </>
         )}
-      </button>
+      </MagneticButton>
     </>
   );
 }
