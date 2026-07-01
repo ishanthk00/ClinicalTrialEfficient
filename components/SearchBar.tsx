@@ -46,8 +46,8 @@ export default function SearchBar({
   if (compact) {
     return (
       <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
-        <div className="search-card-dark flex flex-1 items-center rounded-xl overflow-hidden">
-          <span className="pl-3" style={{ color: "#4a5568" }}>
+        <div className="search-card flex flex-1 items-center rounded-xl overflow-hidden">
+          <span className="pl-3" style={{ color: "var(--text-tertiary)" }}>
             <Search size={15} />
           </span>
           <input
@@ -55,10 +55,10 @@ export default function SearchBar({
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
             placeholder="Condition"
-            className="input-dark flex-1 px-2 py-2 text-sm min-w-0"
+            className="input-field flex-1 px-2 py-2 text-sm min-w-0"
           />
-          <div className="h-5 w-px mx-1" style={{ background: "rgba(0,180,216,0.15)" }} />
-          <span className="pl-2" style={{ color: "#4a5568" }}>
+          <div className="h-5 w-px mx-1" style={{ background: "var(--border)" }} />
+          <span className="pl-2" style={{ color: "var(--text-tertiary)" }}>
             <MapPin size={15} />
           </span>
           <input
@@ -66,23 +66,23 @@ export default function SearchBar({
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Location"
-            className="input-dark flex-1 px-2 py-2 text-sm min-w-0"
+            className="input-field flex-1 px-2 py-2 text-sm min-w-0"
           />
           {location && (
             <>
-              <div className="h-5 w-px mx-1" style={{ background: "rgba(0,180,216,0.15)" }} />
+              <div className="h-5 w-px mx-1" style={{ background: "var(--border)" }} />
               <div className="relative flex items-center">
                 <select
                   value={distance}
                   onChange={(e) => setDistance(e.target.value)}
                   className="appearance-none pl-2 pr-6 py-2 text-xs bg-transparent outline-none cursor-pointer"
-                  style={{ color: "#94a3b8" }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   {DISTANCE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-                <ChevronDown size={11} className="absolute right-1 pointer-events-none" style={{ color: "#4a5568" }} />
+                <ChevronDown size={11} className="absolute right-1 pointer-events-none" style={{ color: "var(--text-tertiary)" }} />
               </div>
             </>
           )}
@@ -95,10 +95,10 @@ export default function SearchBar({
   /* ── Full hero variant ── */
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="search-card-dark rounded-2xl">
+      <div className="search-card rounded-2xl">
         {/* Condition */}
         <div className="flex items-center px-5 pt-4 pb-2 gap-3">
-          <Search size={18} className="shrink-0" style={{ color: "#4a5568" }} />
+          <Search size={18} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />
           <input
             type="text"
             value={condition}
@@ -107,24 +107,24 @@ export default function SearchBar({
               if (e.key === "Tab") { e.preventDefault(); locationRef.current?.focus(); }
             }}
             placeholder="Condition or disease (e.g. Alzheimer's, breast cancer)"
-            className="input-dark flex-1 text-base"
+            className="input-field flex-1 text-base"
             autoFocus
           />
         </div>
 
         {/* Divider */}
-        <div className="mx-5 h-px" style={{ background: "rgba(0,180,216,0.10)" }} />
+        <div className="mx-5 h-px" style={{ background: "var(--border-subtle)" }} />
 
         {/* Location */}
         <div className="flex items-center px-5 pt-2 pb-4 gap-3">
-          <MapPin size={18} className="shrink-0" style={{ color: "#4a5568" }} />
+          <MapPin size={18} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />
           <input
             ref={locationRef}
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Location — city, state, or country (optional)"
-            className="input-dark flex-1 text-base"
+            className="input-field flex-1 text-base"
           />
           {location && (
             <div className="relative flex items-center shrink-0">
@@ -133,16 +133,16 @@ export default function SearchBar({
                 onChange={(e) => setDistance(e.target.value)}
                 className="appearance-none pl-2 pr-6 py-1 text-sm rounded-lg outline-none cursor-pointer"
                 style={{
-                  background: "rgba(0,180,216,0.08)",
-                  border: "1px solid rgba(0,180,216,0.20)",
-                  color: "#94a3b8",
+                  background: "var(--accent-bg)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
                 }}
               >
                 {DISTANCE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
-              <ChevronDown size={12} className="absolute right-1.5 pointer-events-none" style={{ color: "#4a5568" }} />
+              <ChevronDown size={12} className="absolute right-1.5 pointer-events-none" style={{ color: "var(--text-tertiary)" }} />
             </div>
           )}
         </div>

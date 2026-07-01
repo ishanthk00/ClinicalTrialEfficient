@@ -3,7 +3,6 @@ import "./globals.css";
 import Link from "next/link";
 import ThemeProvider from "@/components/ThemeProvider";
 import MagneticButton from "@/components/MagneticButton";
-import ScrollInit from "@/components/ScrollInit";
 
 export const metadata: Metadata = {
   title: "TrialFind — Find Clinical Trials",
@@ -12,35 +11,33 @@ export const metadata: Metadata = {
 };
 
 const themeScript = `(function(){
-  document.documentElement.classList.add('dark');
-  document.documentElement.setAttribute('data-theme','dark');
+  document.documentElement.classList.remove('dark');
+  document.documentElement.setAttribute('data-theme','light');
 })();`;
 
-const fontLink = "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=Sora:wght@300;400;500;600;700;800&display=swap";
+const fontLink = "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href={fontLink} rel="stylesheet" />
       </head>
-      <body style={{ backgroundColor: "#0a0f1e", color: "#f0f4ff" }} className="min-h-screen">
+      <body className="min-h-screen" style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}>
         {/* Scroll progress bar */}
         <div id="scroll-progress" className="scroll-progress" style={{ width: "0%" }} />
 
         <ThemeProvider>
-          <ScrollInit />
-
-          {/* ── Sticky frosted nav ── */}
-          <nav className="glass-nav sticky top-0 z-50">
-            <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center">
+          {/* ── Floating pill nav ── */}
+          <nav className="sticky top-0 z-50 px-4 pt-3">
+            <div className="floating-nav max-w-[1200px] mx-auto px-6 h-14 flex items-center">
               <Link
                 href="/"
                 className="text-lg font-bold tracking-tight shrink-0"
-                style={{ fontFamily: "'Sora', sans-serif", color: "#00b4d8" }}
+                style={{ fontFamily: "'Outfit', sans-serif", color: "var(--accent)" }}
               >
                 TrialFind
               </Link>
@@ -68,17 +65,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           {/* ── Footer ── */}
-          <footer style={{ background: "#060b18", borderTop: "1px solid rgba(0,180,216,0.12)" }}>
+          <footer className="site-footer">
             <div className="max-w-[1200px] mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-3 gap-10">
               {/* Col 1 */}
               <div>
                 <span
                   className="text-lg font-bold"
-                  style={{ fontFamily: "'Sora',sans-serif", color: "#00b4d8" }}
+                  style={{ fontFamily: "'Outfit',sans-serif", color: "var(--accent)" }}
                 >
                   TrialFind
                 </span>
-                <p className="text-sm mt-3 leading-relaxed" style={{ color: "#4a5568", maxWidth: "22ch" }}>
+                <p className="text-sm mt-3 leading-relaxed" style={{ color: "var(--text-secondary)", maxWidth: "22ch" }}>
                   Making clinical research accessible to everyone. Search 500,000+ trials in plain English.
                 </p>
               </div>
@@ -117,16 +114,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Bottom bar */}
             <div
               className="max-w-[1200px] mx-auto px-6 pb-6 pt-4 flex items-center justify-between"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+              style={{ borderTop: "1px solid var(--border-subtle)" }}
             >
-              <p className="text-xs" style={{ color: "#2d3748" }}>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                 © 2025 TrialFind. Data sourced from{" "}
                 <a
                   href="https://clinicaltrials.gov"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
-                  style={{ color: "#4a5568" }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   ClinicalTrials.gov
                 </a>

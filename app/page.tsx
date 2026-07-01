@@ -48,18 +48,18 @@ export default function HomePage() {
           <h1
             className="font-bold leading-[1.05] mb-6 anim-fade-up anim-delay-1"
             style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Outfit', sans-serif",
               fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)",
-              color: "#f0f4ff",
+              color: "var(--text)",
             }}
           >
             Find trials that match you,{" "}
-            <span style={{ color: "#00b4d8" }}>in plain English.</span>
+            <span style={{ color: "var(--accent)" }}>in plain English.</span>
           </h1>
 
           <p
             className="text-lg leading-relaxed max-w-xl mx-auto anim-fade-up anim-delay-2"
-            style={{ color: "#94a3b8" }}
+            style={{ color: "var(--text-secondary)" }}
           >
             Search over 500,000 clinical trials from ClinicalTrials.gov. We translate
             the medical language so you can focus on finding the right option.
@@ -74,7 +74,7 @@ export default function HomePage() {
             </svg>
             Browse Trials
           </MagneticButton>
-          <MagneticButton href="/about" className="magnetic-btn" style={{ background: "transparent", border: "1.5px solid #00b4d8", color: "#00b4d8", boxShadow: "none" }}>
+          <MagneticButton href="/about" className="magnetic-btn" style={{ background: "transparent", border: "1.5px solid var(--accent)", color: "var(--accent)", boxShadow: "none" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
             </svg>
@@ -109,7 +109,7 @@ export default function HomePage() {
         {/* Trust note */}
         <p
           className="relative z-10 mt-14 text-xs text-center max-w-sm anim-fade-up anim-delay-5"
-          style={{ color: "#2d3748" }}
+          style={{ color: "var(--text-tertiary)" }}
         >
           Data sourced from{" "}
           <a
@@ -117,7 +117,7 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2"
-            style={{ color: "#4a5568" }}
+            style={{ color: "var(--text-secondary)" }}
           >
             ClinicalTrials.gov
           </a>
