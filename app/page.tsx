@@ -11,11 +11,11 @@ import type { Trial } from "@/lib/clinicaltrials";
 
 const POPULAR_SEARCHES = [
   { label: "Alzheimer's disease", condition: "Alzheimer's" },
-  { label: "Type 2 Diabetes", condition: "Type 2 Diabetes" },
-  { label: "Breast Cancer", condition: "Breast Cancer" },
-  { label: "Depression", condition: "Depression" },
+  { label: "Type 2 Diabetes",     condition: "Type 2 Diabetes" },
+  { label: "Breast Cancer",       condition: "Breast Cancer" },
+  { label: "Depression",          condition: "Depression" },
   { label: "Parkinson's disease", condition: "Parkinson's" },
-  { label: "Heart failure", condition: "Heart failure" },
+  { label: "Heart failure",       condition: "Heart failure" },
 ];
 
 export default function HomePage() {
@@ -29,55 +29,52 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="hero-bg relative flex flex-col items-center justify-center min-h-[calc(100vh-56px)] px-4 py-16 overflow-hidden">
-        {/* Background network diagram */}
+      <main className="hero-mesh relative flex flex-col items-center justify-center min-h-[calc(100vh-56px)] px-4 py-20 overflow-hidden">
+        {/* Parallax bg image */}
         <Image
           src="/clinical-trials.webp"
           alt=""
           fill
-          className="object-cover opacity-[0.08] pointer-events-none select-none"
+          className="object-cover pointer-events-none select-none"
+          style={{ opacity: 0.04, transform: "translateY(calc(var(--scroll-y, 0) * 0.4px))" }}
           priority
           aria-hidden="true"
         />
 
-        {/* Hero */}
-        <div className="text-center mb-12 max-w-2xl">
-          <p className="text-xs font-semibold tracking-widest text-[#2563EB] uppercase mb-4">
-            Clinical trial search
-          </p>
-          <h1 className="text-4xl font-bold text-[#111827] leading-tight mb-4">
-            Find trials that match you,
-            <br />
-            <span className="text-[#2563EB]">in plain English.</span>
+        {/* Hero text */}
+        <div className="relative z-10 text-center mb-12 max-w-3xl">
+          <p className="section-label mb-5 anim-fade-up">Patient-First · Clinical Trial Search</p>
+
+          <h1
+            className="font-bold leading-[1.05] mb-6 anim-fade-up anim-delay-1"
+            style={{
+              fontFamily: "'Sora', sans-serif",
+              fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)",
+              color: "#f0f4ff",
+            }}
+          >
+            Find trials that match you,{" "}
+            <span style={{ color: "#00b4d8" }}>in plain English.</span>
           </h1>
-          <p className="text-base text-[#6B7280] leading-relaxed">
-            Search over 500,000 clinical trials from ClinicalTrials.gov. We
-            translate the medical language so you can focus on finding the right
-            option.
+
+          <p
+            className="text-lg leading-relaxed max-w-xl mx-auto anim-fade-up anim-delay-2"
+            style={{ color: "#94a3b8" }}
+          >
+            Search over 500,000 clinical trials from ClinicalTrials.gov. We translate
+            the medical language so you can focus on finding the right option.
           </p>
         </div>
 
         {/* CTA buttons */}
-        <div className="flex flex-wrap justify-center gap-3 mb-10">
-          <MagneticButton href="/results">
+        <div className="relative z-10 flex flex-wrap justify-center gap-3 mb-10 anim-fade-up anim-delay-2">
+          <MagneticButton href="/results" className="magnetic-btn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
             Browse Trials
           </MagneticButton>
-          <MagneticButton href="#">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            For Patients
-          </MagneticButton>
-          <MagneticButton href="#">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
-            </svg>
-            For Researchers
-          </MagneticButton>
-          <MagneticButton href="/about">
+          <MagneticButton href="/about" className="magnetic-btn" style={{ background: "transparent", border: "1.5px solid #00b4d8", color: "#00b4d8", boxShadow: "none" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
             </svg>
@@ -86,21 +83,22 @@ export default function HomePage() {
         </div>
 
         {/* Search bar */}
-        <div className="w-full max-w-2xl">
+        <div className="relative z-10 w-full max-w-2xl anim-fade-up anim-delay-3">
           <SearchBar />
         </div>
 
         {/* Popular searches */}
-        <div className="mt-10 w-full max-w-2xl">
-          <p className="text-xs text-[#9CA3AF] text-center mb-4 uppercase tracking-wide font-medium">
+        <div className="relative z-10 mt-8 w-full max-w-2xl anim-fade-up anim-delay-4">
+          <p className="section-label text-center mb-4" style={{ opacity: 0.7 }}>
             Popular searches
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {POPULAR_SEARCHES.map((s) => (
+            {POPULAR_SEARCHES.map((s, i) => (
               <Link
                 key={s.condition}
                 href={`/results?condition=${encodeURIComponent(s.condition)}`}
-                className="pill-search px-4 py-2 rounded-full text-sm shadow-sm"
+                className="pill-teal px-4 py-1.5 rounded-full text-sm"
+                style={{ animationDelay: `${400 + i * 40}ms` }}
               >
                 {s.label}
               </Link>
@@ -109,13 +107,17 @@ export default function HomePage() {
         </div>
 
         {/* Trust note */}
-        <p className="mt-16 text-xs text-[#9CA3AF] text-center max-w-sm">
+        <p
+          className="relative z-10 mt-14 text-xs text-center max-w-sm anim-fade-up anim-delay-5"
+          style={{ color: "#2d3748" }}
+        >
           Data sourced from{" "}
           <a
             href="https://clinicaltrials.gov"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-[#6B7280]"
+            className="underline underline-offset-2"
+            style={{ color: "#4a5568" }}
           >
             ClinicalTrials.gov
           </a>
@@ -123,7 +125,6 @@ export default function HomePage() {
         </p>
       </main>
 
-      {/* Personalized Trials — appears after AI agent gathers your info */}
       {personalizedTrials.length > 0 && (
         <PersonalizedTrials
           trials={personalizedTrials}
@@ -131,7 +132,6 @@ export default function HomePage() {
         />
       )}
 
-      {/* AI Agent floating button + chat panel */}
       <AIAgent onTrialsFound={handleTrialsFound} />
     </>
   );

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import ThemeProvider from "@/components/ThemeProvider";
-import ThemeToggle from "@/components/ThemeToggle";
 import MagneticButton from "@/components/MagneticButton";
+import ScrollInit from "@/components/ScrollInit";
 
 export const metadata: Metadata = {
   title: "TrialFind — Find Clinical Trials",
@@ -11,49 +11,47 @@ export const metadata: Metadata = {
     "Search ClinicalTrials.gov in plain English. Find clinical trials for any condition, anywhere.",
 };
 
+const themeScript = `(function(){
+  document.documentElement.classList.add('dark');
+  document.documentElement.setAttribute('data-theme','dark');
+})();`;
 
-// Runs before hydration to prevent flash of wrong theme
-const themeScript = `
-(function(){
-  try {
-    var t = localStorage.getItem('trialfind-theme');
-    var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme:dark)').matches);
-    document.documentElement.classList.toggle('dark', dark);
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  } catch(e) {}
-})();
-`;
+const fontLink = "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=Sora:wght@300;400;500;600;700;800&display=swap";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Flash-prevention: runs synchronously before paint */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href={fontLink} rel="stylesheet" />
       </head>
-      <body
-        style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
-        className="min-h-screen"
-      >
+      <body style={{ backgroundColor: "#0a0f1e", color: "#f0f4ff" }} className="min-h-screen">
+        {/* Scroll progress bar */}
+        <div id="scroll-progress" className="scroll-progress" style={{ width: "0%" }} />
+
         <ThemeProvider>
-          {/* Sticky frosted nav */}
+          <ScrollInit />
+
+          {/* ── Sticky frosted nav ── */}
           <nav className="glass-nav sticky top-0 z-50">
-            <div className="max-w-6xl mx-auto px-6 h-[52px] flex items-center gap-8">
-              {/* Logo */}
+            <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center">
               <Link
                 href="/"
-                className="text-[15px] font-semibold tracking-tight shrink-0"
-                style={{ color: "var(--accent)" }}
+                className="text-lg font-bold tracking-tight shrink-0"
+                style={{ fontFamily: "'Sora', sans-serif", color: "#00b4d8" }}
               >
                 TrialFind
               </Link>
 
+              {/* Center nav links */}
+              <div className="hidden md:flex items-center gap-6 ml-10">
+                <Link href="/results" className="nav-link text-sm py-1">Search</Link>
+                <Link href="/about" className="nav-link text-sm py-1">About</Link>
+              </div>
 
-              {/* Right: saved + theme toggle */}
+              {/* Right: saved */}
               <div className="ml-auto flex items-center gap-3">
                 <MagneticButton href="/saved" className="magnetic-btn-nav">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -61,7 +59,6 @@ export default function RootLayout({
                   </svg>
                   Saved trials
                 </MagneticButton>
-                <ThemeToggle />
               </div>
             </div>
           </nav>
@@ -70,45 +67,71 @@ export default function RootLayout({
             {children}
           </div>
 
-          {/* Footer */}
-          <footer
-            className="border-t mt-24"
-            style={{ borderColor: "var(--border-subtle)" }}
-          >
-            <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          {/* ── Footer ── */}
+          <footer style={{ background: "#060b18", borderTop: "1px solid rgba(0,180,216,0.12)" }}>
+            <div className="max-w-[1200px] mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-3 gap-10">
+              {/* Col 1 */}
               <div>
                 <span
-                  className="text-[13px] font-semibold"
-                  style={{ color: "var(--accent)" }}
+                  className="text-lg font-bold"
+                  style={{ fontFamily: "'Sora',sans-serif", color: "#00b4d8" }}
                 >
                   TrialFind
                 </span>
-                <p className="text-[12px] mt-1" style={{ color: "var(--text-tertiary)" }}>
-                  Data sourced from{" "}
-                  <a
-                    href="https://clinicaltrials.gov"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    ClinicalTrials.gov
-                  </a>
-                  . Always consult a healthcare provider before enrolling.
+                <p className="text-sm mt-3 leading-relaxed" style={{ color: "#4a5568", maxWidth: "22ch" }}>
+                  Making clinical research accessible to everyone. Search 500,000+ trials in plain English.
                 </p>
               </div>
-              <div className="flex items-center gap-5">
-                {["Privacy", "Data sources", "Regulatory info", "Contact"].map((link) => (
-                  <a
-                    key={link}
-                    href="#"
-                    className="text-[12px] font-light transition-colors duration-150"
-                    style={{ color: "var(--text-tertiary)" }}
+
+              {/* Col 2 */}
+              <div className="flex flex-col gap-2">
+                <span className="section-label mb-3">Navigation</span>
+                {([["Home", "/"], ["Search Trials", "/results"], ["About", "/about"], ["Saved Trials", "/saved"]] as [string, string][]).map(([label, href]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-sm footer-link"
                   >
-                    {link}
-                  </a>
+                    {label}
+                  </Link>
                 ))}
               </div>
+
+              {/* Col 3 */}
+              <div className="flex flex-col gap-2">
+                <span className="section-label mb-3">Data &amp; Legal</span>
+                <a
+                  href="https://clinicaltrials.gov"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm footer-link"
+                >
+                  ClinicalTrials.gov
+                </a>
+                {["Privacy", "Regulatory info", "Contact"].map((l) => (
+                  <a key={l} href="#" className="text-sm footer-link">{l}</a>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom bar */}
+            <div
+              className="max-w-[1200px] mx-auto px-6 pb-6 pt-4 flex items-center justify-between"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+            >
+              <p className="text-xs" style={{ color: "#2d3748" }}>
+                © 2025 TrialFind. Data sourced from{" "}
+                <a
+                  href="https://clinicaltrials.gov"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
+                  style={{ color: "#4a5568" }}
+                >
+                  ClinicalTrials.gov
+                </a>
+                . Always consult a healthcare provider before enrolling.
+              </p>
             </div>
           </footer>
         </ThemeProvider>

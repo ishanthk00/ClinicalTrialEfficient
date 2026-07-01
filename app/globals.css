@@ -1,17 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens ── */
+/* ── Design tokens ──
+   Palette/scale ported from mytrials.ai's design-system extract
+   (see design-system.md) — single accent family (teal/sky-blue),
+   one typeface (Outfit), soft-shadow cards over hard borders. */
 :root {
-  --bg: #FBFBFD;
+  --bg: #FFFFFF;
   --shimmer-highlight: rgba(255, 255, 255, 0.78);
   /* 3-D button tokens — hue/sat/lit kept separate so dark mode only overrides lit */
-  --btn-hue: 210;
-  --btn-sat: 72%;
-  --btn-lit: 46%;
+  --btn-hue: 198;
+  --btn-sat: 88%;
+  --btn-lit: 30%;
   --btn-radius: 0.625rem;
   --btn-pad-y: 0.75rem;
   --btn-pad-x: 2.25rem;
@@ -21,80 +22,84 @@
   --lift-press: 2px;
   --btn-dur: 220ms;
   --bg-elevated: #FFFFFF;
-  --bg-secondary: #F5F5F7;
-  --text: #1D1D1F;
-  --text-secondary: #6E6E73;
-  --text-tertiary: #AEAEB2;
-  --border: #D2D2D7;
-  --border-subtle: #E8E8ED;
-  --accent: #2677C7;
-  --accent-hover: #1A64B0;
-  --accent-bg: #EAF2FC;
-  --accent-glow: rgba(38, 119, 199, 0.09);
-  --nav-bg: rgba(251, 251, 253, 0.85);
-  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.03);
-  --shadow-hover: 0 12px 40px rgba(0,0,0,0.10), 0 3px 10px rgba(0,0,0,0.05);
+  --bg-secondary: #F0FAFF;
+  --text: #002B3E;
+  --text-secondary: #4F6B7A;
+  --text-tertiary: #7B96A3;
+  --border: rgba(166, 234, 255, 0.7);
+  --border-subtle: rgba(0, 43, 62, 0.07);
+  --accent: #075A7F;
+  --accent-hover: #002B3E;
+  --accent-bg: rgba(166, 234, 255, 0.2);
+  --accent-glow: rgba(7, 90, 127, 0.25);
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --shadow-sm:    0 2px 6px rgba(0,0,0,0.1);
+  --shadow-md:    0 12px 30px rgba(0,0,0,0.08);
+  --shadow-hover: 0 20px 50px rgba(0,0,0,0.1);
 }
 
-/* Dark tokens — set by html.dark (ThemeProvider) or system preference */
+/* Dark tokens — set by html.dark (ThemeProvider) or system preference.
+   mytrials.ai has no dark mode; this is a deep-teal variant of the
+   same palette so toggling stays cohesive instead of reverting to a
+   different brand. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --shimmer-highlight: rgba(255, 255, 255, 0.06);
-    --bg:             #0B0B10;
-    --bg-elevated:    #111118;
-    --bg-secondary:   #181820;
-    --text:           #EAEAF5;
-    --text-secondary: #8686A8;
-    --text-tertiary:  #44445E;
-    --border:         #222232;
-    --border-subtle:  #191924;
-    --accent:         #5B9BFF;
-    --accent-hover:   #7DB2FF;
-    --accent-bg:      #0B1828;
-    --accent-glow:    rgba(91, 155, 255, 0.14);
-    --nav-bg:         rgba(11, 11, 16, 0.88);
+    --bg:             #002B3E;
+    --bg-elevated:    #003B52;
+    --bg-secondary:   #00425C;
+    --text:           #EAF7FB;
+    --text-secondary: #A6EAFF;
+    --text-tertiary:  #5D8A9C;
+    --border:         rgba(166, 234, 255, 0.18);
+    --border-subtle:  rgba(166, 234, 255, 0.08);
+    --accent:         #A6EAFF;
+    --accent-hover:   #D6F5FF;
+    --accent-bg:      rgba(166, 234, 255, 0.12);
+    --accent-glow:    rgba(166, 234, 255, 0.25);
+    --nav-bg:         rgba(0, 43, 62, 0.88);
     --shadow-sm:    0 1px 2px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
     --shadow-md:    0 4px 24px rgba(0,0,0,0.75), 0 1px 4px rgba(0,0,0,0.45);
     --shadow-hover: 0 14px 48px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.55);
-    --btn-sat: 88%;
-    --btn-lit: 56%;
+    --btn-sat: 70%;
+    --btn-lit: 70%;
   }
 }
 
 html.dark {
   --shimmer-highlight: rgba(255, 255, 255, 0.06);
-  --bg:             #0B0B10;
-  --bg-elevated:    #111118;
-  --bg-secondary:   #181820;
-  --text:           #EAEAF5;
-  --text-secondary: #8686A8;
-  --text-tertiary:  #44445E;
-  --border:         #222232;
-  --border-subtle:  #191924;
-  --accent:         #5B9BFF;
-  --accent-hover:   #7DB2FF;
-  --accent-bg:      #0B1828;
-  --accent-glow:    rgba(91, 155, 255, 0.14);
-  --nav-bg:         rgba(11, 11, 16, 0.88);
+  --bg:             #002B3E;
+  --bg-elevated:    #003B52;
+  --bg-secondary:   #00425C;
+  --text:           #EAF7FB;
+  --text-secondary: #A6EAFF;
+  --text-tertiary:  #5D8A9C;
+  --border:         rgba(166, 234, 255, 0.18);
+  --border-subtle:  rgba(166, 234, 255, 0.08);
+  --accent:         #A6EAFF;
+  --accent-hover:   #D6F5FF;
+  --accent-bg:      rgba(166, 234, 255, 0.12);
+  --accent-glow:    rgba(166, 234, 255, 0.25);
+  --nav-bg:         rgba(0, 43, 62, 0.88);
   --shadow-sm:    0 1px 2px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
   --shadow-md:    0 4px 24px rgba(0,0,0,0.75), 0 1px 4px rgba(0,0,0,0.45);
   --shadow-hover: 0 14px 48px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.55);
-  --btn-sat: 88%;
-  --btn-lit: 56%;
+  --btn-sat: 70%;
+  --btn-lit: 70%;
 }
 
 /* ── Base ── */
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, .font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-weight: 600;
 }
 
 * { box-sizing: border-box; }
@@ -113,12 +118,16 @@ h1, h2, h3, .font-display {
   overflow: hidden;
 }
 
-/* ── Frosted glass nav ── */
-.glass-nav {
+/* ── Floating pill nav (mytrials.ai nav-container anatomy) ──
+   Detached rounded card instead of a flush full-width bar. */
+.floating-nav {
   background: var(--nav-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 
 /* ── Hero radial glow ── */
@@ -128,18 +137,54 @@ h1, h2, h3, .font-display {
     var(--bg);
 }
 
+/* ── Hero mesh background (mytrials.ai hero-overlay anatomy) ── */
+.hero-mesh {
+  background:
+    radial-gradient(circle at 20% 15%, var(--accent-glow) 0%, transparent 45%),
+    linear-gradient(160deg, var(--bg-secondary) 0%, var(--bg) 55%);
+}
+
+/* ── Small uppercase overline label ── */
+.section-label {
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Teal pill (mytrials.ai lp-highlight-box anatomy) ── */
+.pill-teal {
+  display: inline-flex;
+  align-items: center;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-weight: 500;
+  transition: background-color 180ms ease, border-color 180ms ease,
+              color 180ms ease, transform 120ms ease;
+}
+.pill-teal:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.pill-teal:active { transform: scale(0.96); }
+
 /* ── Shared interactive utilities ── */
 .nav-link {
   color: var(--text-secondary);
   transition: color 150ms ease;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
 }
 .nav-link:hover { color: var(--text); }
 
 .footer-link {
   color: var(--text-tertiary);
   transition: color 150ms ease;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
 }
 .footer-link:hover { color: var(--text-secondary); }
 
@@ -147,7 +192,7 @@ h1, h2, h3, .font-display {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   transition: border-color 180ms ease, color 180ms ease, background-color 180ms ease;
 }
 .pill-search:hover {
@@ -159,12 +204,12 @@ h1, h2, h3, .font-display {
 .btn-primary {
   background-color: var(--accent);
   color: #FFFFFF;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   transition: background-color 180ms ease, box-shadow 180ms ease;
 }
 .btn-primary:hover {
   background-color: var(--accent-hover);
-  box-shadow: 0 4px 16px rgba(38, 119, 199, 0.35);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 .btn-primary:disabled {
   opacity: 0.38;
@@ -189,7 +234,7 @@ h1, h2, h3, .font-display {
 .input-field {
   background: transparent;
   color: var(--text);
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   outline: none;
   caret-color: var(--accent);
 }
@@ -197,13 +242,19 @@ h1, h2, h3, .font-display {
 
 .search-card {
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow-md);
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 .search-card:focus-within {
   border-color: var(--accent);
   box-shadow: var(--shadow-md), 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Footer gradient (mytrials.ai footer anatomy) ── */
+.site-footer {
+  background: linear-gradient(to bottom, var(--bg), var(--bg-secondary));
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ── Staggered reveal animations ── */
@@ -310,7 +361,7 @@ h1, h2, h3, .font-display {
   );
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.2);
   color: #fff;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: var(--btn-font-size);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -450,7 +501,7 @@ textarea:focus-visible {
   gap: 0.45em;
   padding: 0.72rem 1.6rem;
   border-radius: 9999px;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
   color: #fff;
@@ -473,7 +524,7 @@ textarea:focus-visible {
 .magnetic-btn:hover {
   background-color: var(--accent-hover);
   box-shadow:
-    0 8px 32px rgba(38, 119, 199, 0.40),
+    0 8px 32px var(--accent-glow),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 .magnetic-btn:active {
@@ -489,7 +540,7 @@ textarea:focus-visible {
   gap: 0.4em;
   padding: 0.38rem 1rem;
   border-radius: 9999px;
-  font-family: 'Sora', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -524,4 +575,25 @@ textarea:focus-visible {
 .pill-search:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* ── Leaflet map overrides ── */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.leaflet-popup-tip {
+  background: var(--bg-elevated);
+}
+.leaflet-popup-close-button {
+  color: var(--text-tertiary) !important;
+}
+.leaflet-popup-close-button:hover {
+  color: var(--text) !important;
+}
+.leaflet-container {
+  font-family: inherit;
 }

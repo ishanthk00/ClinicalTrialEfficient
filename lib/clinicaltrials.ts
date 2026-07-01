@@ -20,6 +20,7 @@ export interface Trial {
   status: string;
   phases: string[];
   startDate?: string;
+  lastUpdatePostDate?: string;
   briefSummary?: string;
   eligibilityCriteria?: string;
   locations: TrialLocation[];
@@ -98,6 +99,9 @@ function parseTrial(study: Record<string, unknown>): Trial {
     phases,
     startDate: (status?.startDateStruct as Record<string, string> | undefined)
       ?.date,
+    lastUpdatePostDate: (
+      status?.lastUpdatePostDateStruct as Record<string, string> | undefined
+    )?.date,
     briefSummary: desc?.briefSummary as string | undefined,
     eligibilityCriteria: elig?.eligibilityCriteria as string | undefined,
     locations,
@@ -116,6 +120,8 @@ export async function searchTrials(params: {
   condition?: string;
   location?: string;
   status?: string;
+  recruitingOnly?: boolean;
+  recent?: boolean;
   phase?: string;
   ageGroup?: string;
   pageToken?: string;
@@ -125,7 +131,11 @@ export async function searchTrials(params: {
 
   if (params.condition) query.set("query.cond", params.condition);
   if (params.location) query.set("query.locn", params.location);
-  if (params.status) query.set("filter.overallStatus", params.status);
+  if (params.status) {
+    query.set("filter.overallStatus", params.status);
+  } else if (params.recruitingOnly) {
+    query.set("filter.overallStatus", "RECRUITING");
+  }
   if (params.phase) {
     const phaseMap: Record<string, string> = {
       "Phase 1": "PHASE1",
@@ -145,6 +155,7 @@ export async function searchTrials(params: {
   }
   query.set("pageSize", String(params.pageSize ?? 20));
   if (params.pageToken) query.set("pageToken", params.pageToken);
+  if (params.recent) query.set("sort", "LastUpdatePostDate:desc");
 
   query.set(
     "fields",

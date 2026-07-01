@@ -2,23 +2,34 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, ChevronDown } from "lucide-react";
 import Button3D from "@/components/Button3D";
+
+const DISTANCE_OPTIONS = [
+  { value: "25",  label: "25 mi" },
+  { value: "50",  label: "50 mi" },
+  { value: "100", label: "100 mi" },
+  { value: "250", label: "250 mi" },
+  { value: "any", label: "Any distance" },
+];
 
 interface SearchBarProps {
   initialCondition?: string;
   initialLocation?: string;
+  initialDistance?: string;
   compact?: boolean;
 }
 
 export default function SearchBar({
   initialCondition = "",
   initialLocation = "",
+  initialDistance = "any",
   compact = false,
 }: SearchBarProps) {
   const router = useRouter();
   const [condition, setCondition] = useState(initialCondition);
-  const [location, setLocation] = useState(initialLocation);
+  const [location, setLocation]   = useState(initialLocation);
+  const [distance, setDistance]   = useState(initialDistance);
   const locationRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -27,78 +38,113 @@ export default function SearchBar({
     const params = new URLSearchParams();
     if (condition.trim()) params.set("condition", condition.trim());
     if (location.trim()) params.set("location", location.trim());
+    if (location.trim() && distance !== "any") params.set("distance", distance);
     router.push(`/results?${params.toString()}`);
   }
 
+  /* ── Compact variant (results page top bar) ── */
   if (compact) {
     return (
       <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
-        <div className="flex flex-1 items-center bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-xl overflow-hidden shadow-sm focus-within:border-[#2563EB] dark:focus-within:border-[#5B9BFF] focus-within:ring-1 focus-within:ring-[#2563EB]/20 dark:focus-within:ring-[#5B9BFF]/20 transition-all">
-          <div className="flex items-center pl-3 text-[#9CA3AF] dark:text-[#44445E]">
+        <div className="search-card-dark flex flex-1 items-center rounded-xl overflow-hidden">
+          <span className="pl-3" style={{ color: "#4a5568" }}>
             <Search size={15} />
-          </div>
+          </span>
           <input
             type="text"
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
             placeholder="Condition"
-            className="flex-1 px-2 py-2 text-sm bg-transparent text-[#111827] dark:text-[#EAEAF5] placeholder:text-[#9CA3AF] dark:placeholder:text-[#44445E] outline-none"
+            className="input-dark flex-1 px-2 py-2 text-sm min-w-0"
           />
-          <div className="h-5 w-px bg-[#E5E7EB] dark:bg-[#222232]" />
-          <div className="flex items-center pl-3 text-[#9CA3AF] dark:text-[#44445E]">
+          <div className="h-5 w-px mx-1" style={{ background: "rgba(0,180,216,0.15)" }} />
+          <span className="pl-2" style={{ color: "#4a5568" }}>
             <MapPin size={15} />
-          </div>
+          </span>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Location"
-            className="flex-1 px-2 py-2 text-sm bg-transparent text-[#111827] dark:text-[#EAEAF5] placeholder:text-[#9CA3AF] dark:placeholder:text-[#44445E] outline-none"
+            className="input-dark flex-1 px-2 py-2 text-sm min-w-0"
           />
+          {location && (
+            <>
+              <div className="h-5 w-px mx-1" style={{ background: "rgba(0,180,216,0.15)" }} />
+              <div className="relative flex items-center">
+                <select
+                  value={distance}
+                  onChange={(e) => setDistance(e.target.value)}
+                  className="appearance-none pl-2 pr-6 py-2 text-xs bg-transparent outline-none cursor-pointer"
+                  style={{ color: "#94a3b8" }}
+                >
+                  {DISTANCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="absolute right-1 pointer-events-none" style={{ color: "#4a5568" }} />
+              </div>
+            </>
+          )}
         </div>
-        <Button3D type="submit" size="sm">
-          Search
-        </Button3D>
+        <Button3D type="submit" size="sm">Search</Button3D>
       </form>
     );
   }
 
+  /* ── Full hero variant ── */
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="group bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-2xl shadow-md dark:shadow-[0_4px_24px_rgba(0,0,0,0.6)] hover:shadow-lg dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.7)] transition-[box-shadow,border-color] focus-within:border-[#2563EB] dark:focus-within:border-[#5B9BFF] focus-within:ring-2 focus-within:ring-[#2563EB]/20 dark:focus-within:ring-[#5B9BFF]/20">
-        {/* Condition input */}
+      <div className="search-card-dark rounded-2xl">
+        {/* Condition */}
         <div className="flex items-center px-5 pt-4 pb-2 gap-3">
-          <Search size={18} className="text-[#9CA3AF] dark:text-[#44445E] shrink-0" />
+          <Search size={18} className="shrink-0" style={{ color: "#4a5568" }} />
           <input
             type="text"
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Tab") {
-                e.preventDefault();
-                locationRef.current?.focus();
-              }
+              if (e.key === "Tab") { e.preventDefault(); locationRef.current?.focus(); }
             }}
             placeholder="Condition or disease (e.g. Alzheimer's, breast cancer)"
-            className="flex-1 text-base text-[#111827] dark:text-[#EAEAF5] placeholder:text-[#9CA3AF] dark:placeholder:text-[#44445E] bg-transparent outline-none"
+            className="input-dark flex-1 text-base"
             autoFocus
           />
         </div>
 
         {/* Divider */}
-        <div className="mx-5 h-px bg-[#F3F4F6] dark:bg-[#191924]" />
+        <div className="mx-5 h-px" style={{ background: "rgba(0,180,216,0.10)" }} />
 
-        {/* Location input — expands 3px on focus */}
-        <div className="flex items-center px-5 pt-2 pb-4 group-focus-within:pb-[19px] transition-[padding-bottom] duration-150 ease-out gap-3">
-          <MapPin size={18} className="text-[#9CA3AF] dark:text-[#44445E] shrink-0" />
+        {/* Location */}
+        <div className="flex items-center px-5 pt-2 pb-4 gap-3">
+          <MapPin size={18} className="shrink-0" style={{ color: "#4a5568" }} />
           <input
             ref={locationRef}
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Location — city, state, or country (optional)"
-            className="flex-1 text-base text-[#111827] dark:text-[#EAEAF5] placeholder:text-[#9CA3AF] dark:placeholder:text-[#44445E] bg-transparent outline-none"
+            className="input-dark flex-1 text-base"
           />
+          {location && (
+            <div className="relative flex items-center shrink-0">
+              <select
+                value={distance}
+                onChange={(e) => setDistance(e.target.value)}
+                className="appearance-none pl-2 pr-6 py-1 text-sm rounded-lg outline-none cursor-pointer"
+                style={{
+                  background: "rgba(0,180,216,0.08)",
+                  border: "1px solid rgba(0,180,216,0.20)",
+                  color: "#94a3b8",
+                }}
+              >
+                {DISTANCE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-1.5 pointer-events-none" style={{ color: "#4a5568" }} />
+            </div>
+          )}
         </div>
       </div>
 

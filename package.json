@@ -11,13 +11,16 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "groq-sdk": "^1.1.2",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.400.0",
     "next": "^16.2.6",
     "react": "^18",
     "react-dom": "^18",
+    "react-leaflet": "^4.2.1",
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -1,23 +1,94 @@
 import { Suspense } from "react";
 import { searchTrials } from "@/lib/clinicaltrials";
+import { geocodeLocation, geocodeMany } from "@/lib/geocode";
 import TrialCard from "@/components/TrialCard";
 import FilterPanel from "@/components/FilterPanel";
 import SearchBar from "@/components/SearchBar";
 import SkeletonCard from "@/components/SkeletonCard";
+import MapPanel from "@/components/MapPanel";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import type { MapMarker } from "@/components/TrialsMap";
 
 interface SearchParams {
   condition?: string;
   location?: string;
+  distance?: string;
   status?: string;
+  recruitingOnly?: string;
+  recent?: string;
   phase?: string;
   ageGroup?: string;
   pageToken?: string;
 }
 
+async function MapSection({
+  trials,
+  location,
+  distance,
+}: {
+  trials: Awaited<ReturnType<typeof searchTrials>>["trials"];
+  location?: string;
+  distance?: string;
+}) {
+  // Build unique "city, state, country" keys from all trial locations on this page
+  const locationKeys = [
+    ...new Set(
+      trials.flatMap((t) =>
+        t.locations.map((l) =>
+          [l.city, l.state, l.country].filter(Boolean).join(", ")
+        )
+      ).filter(Boolean)
+    ),
+  ];
+
+  const geocodeMap = await geocodeMany(locationKeys);
+
+  // Group trials by geocoded location key
+  const markerMap = new Map<string, MapMarker>();
+  for (const trial of trials) {
+    for (const loc of trial.locations) {
+      const key = [loc.city, loc.state, loc.country].filter(Boolean).join(", ");
+      if (!key) continue;
+      const coords = geocodeMap.get(key.trim().toLowerCase().replace(/\s+/g, " "));
+      if (!coords) continue;
+      if (!markerMap.has(key)) {
+        markerMap.set(key, { key, lat: coords.lat, lon: coords.lon, trials: [] });
+      }
+      const marker = markerMap.get(key)!;
+      if (!marker.trials.find((t) => t.nctId === trial.nctId)) {
+        marker.trials.push({ nctId: trial.nctId, title: trial.title, status: trial.status });
+      }
+    }
+  }
+
+  const markers = [...markerMap.values()];
+
+  const center = location ? await geocodeLocation(location) : null;
+  const radiusMiles =
+    distance && distance !== "any" ? parseInt(distance, 10) : undefined;
+
+  return (
+    <MapPanel
+      markers={markers}
+      center={center ? { lat: center.lat, lon: center.lon } : null}
+      radiusMiles={radiusMiles}
+    />
+  );
+}
+
 async function ResultsContent({ searchParams }: { searchParams: SearchParams }) {
-  const { condition, location, status, phase, ageGroup, pageToken } = searchParams;
+  const {
+    condition,
+    location,
+    distance,
+    status,
+    recruitingOnly,
+    recent,
+    phase,
+    ageGroup,
+    pageToken,
+  } = searchParams;
 
   if (!condition) {
     return (
@@ -35,7 +106,16 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
 
   let result;
   try {
-    result = await searchTrials({ condition, location, status, phase, ageGroup, pageToken });
+    result = await searchTrials({
+      condition,
+      location,
+      status,
+      recruitingOnly: recruitingOnly === "1",
+      recent: recent === "1",
+      phase,
+      ageGroup,
+      pageToken,
+    });
   } catch {
     return (
       <div className="text-center py-16">
@@ -88,13 +168,21 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
   const nextParams = new URLSearchParams();
   if (condition) nextParams.set("condition", condition);
   if (location) nextParams.set("location", location);
+  if (distance) nextParams.set("distance", distance);
   if (status) nextParams.set("status", status);
+  if (recruitingOnly) nextParams.set("recruitingOnly", recruitingOnly);
+  if (recent) nextParams.set("recent", recent);
   if (phase) nextParams.set("phase", phase);
   if (ageGroup) nextParams.set("ageGroup", ageGroup);
   if (nextPageToken) nextParams.set("pageToken", nextPageToken);
 
   return (
     <>
+      {/* Map panel — streams in independently so trial cards render immediately */}
+      <Suspense fallback={null}>
+        <MapSection trials={trials} location={location} distance={distance} />
+      </Suspense>
+
       {totalCount !== undefined && (
         <p className="text-sm text-[#6B7280] dark:text-[#8686A8] mb-5">
           Showing {trials.length} of {totalCount.toLocaleString()} trials
@@ -109,6 +197,11 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
               {" "}near{" "}
               <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{location}</span>
             </>
+          )}
+          {recent === "1" && (
+            <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--text-secondary)" }}>
+              Recently updated
+            </span>
           )}
         </p>
       )}
@@ -151,28 +244,26 @@ export default async function ResultsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const resolvedParams = await searchParams;
-  const { condition, location } = resolvedParams;
+  const { condition, location, distance } = resolvedParams;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Compact search bar */}
       <div className="mb-8">
         <SearchBar
           initialCondition={condition}
           initialLocation={location}
+          initialDistance={distance}
           compact
         />
       </div>
 
       <div className="flex gap-8">
-        {/* Sidebar filters */}
         <div className="hidden lg:block w-52 shrink-0">
           <Suspense>
             <FilterPanel />
           </Suspense>
         </div>
 
-        {/* Results */}
         <div className="flex-1 min-w-0">
           <Suspense fallback={<SkeletonGrid />}>
             <ResultsContent searchParams={resolvedParams} />
