@@ -9,3 +9,4 @@
 *.tsbuildinfo
 next-env.d.ts
 npm-debug.log*
+.claude/worktrees/
