@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import { searchTrials } from "@/lib/clinicaltrials";
-import { geocodeLocation, geocodeMany } from "@/lib/geocode";
+import { geocodeOrigin } from "@/lib/geocode";
+import {
+  enrichTrialsWithDistance,
+  buildTrialMarkers,
+} from "@/lib/distance";
 import TrialCard from "@/components/TrialCard";
 import FilterPanel from "@/components/FilterPanel";
 import SearchBar from "@/components/SearchBar";
@@ -8,7 +12,6 @@ import SkeletonCard from "@/components/SkeletonCard";
 import MapPanel from "@/components/MapPanel";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import type { MapMarker } from "@/components/TrialsMap";
 
 interface SearchParams {
   condition?: string;
@@ -17,64 +20,10 @@ interface SearchParams {
   status?: string;
   recruitingOnly?: string;
   recent?: string;
+  sort?: string;
   phase?: string;
   ageGroup?: string;
   pageToken?: string;
-}
-
-async function MapSection({
-  trials,
-  location,
-  distance,
-}: {
-  trials: Awaited<ReturnType<typeof searchTrials>>["trials"];
-  location?: string;
-  distance?: string;
-}) {
-  // Build unique "city, state, country" keys from all trial locations on this page
-  const locationKeys = [
-    ...new Set(
-      trials.flatMap((t) =>
-        t.locations.map((l) =>
-          [l.city, l.state, l.country].filter(Boolean).join(", ")
-        )
-      ).filter(Boolean)
-    ),
-  ];
-
-  const geocodeMap = await geocodeMany(locationKeys);
-
-  // Group trials by geocoded location key
-  const markerMap = new Map<string, MapMarker>();
-  for (const trial of trials) {
-    for (const loc of trial.locations) {
-      const key = [loc.city, loc.state, loc.country].filter(Boolean).join(", ");
-      if (!key) continue;
-      const coords = geocodeMap.get(key.trim().toLowerCase().replace(/\s+/g, " "));
-      if (!coords) continue;
-      if (!markerMap.has(key)) {
-        markerMap.set(key, { key, lat: coords.lat, lon: coords.lon, trials: [] });
-      }
-      const marker = markerMap.get(key)!;
-      if (!marker.trials.find((t) => t.nctId === trial.nctId)) {
-        marker.trials.push({ nctId: trial.nctId, title: trial.title, status: trial.status });
-      }
-    }
-  }
-
-  const markers = [...markerMap.values()];
-
-  const center = location ? await geocodeLocation(location) : null;
-  const radiusMiles =
-    distance && distance !== "any" ? parseInt(distance, 10) : undefined;
-
-  return (
-    <MapPanel
-      markers={markers}
-      center={center ? { lat: center.lat, lon: center.lon } : null}
-      radiusMiles={radiusMiles}
-    />
-  );
 }
 
 async function ResultsContent({ searchParams }: { searchParams: SearchParams }) {
@@ -85,6 +34,7 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
     status,
     recruitingOnly,
     recent,
+    sort,
     phase,
     ageGroup,
     pageToken,
@@ -104,6 +54,14 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
     );
   }
 
+  const radiusMiles =
+    distance && distance !== "any" ? parseInt(distance, 10) : undefined;
+  const sortByDistance = sort === "distance";
+
+  // Only the origin needs geocoding (Nominatim). Trial proximity uses the
+  // precise per-facility coordinates returned by the ClinicalTrials.gov API.
+  const origin = location ? await geocodeOrigin(location) : null;
+
   let result;
   try {
     result = await searchTrials({
@@ -115,6 +73,9 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
       phase,
       ageGroup,
       pageToken,
+      originLat: origin?.lat,
+      originLon: origin?.lon,
+      radiusMiles,
     });
   } catch {
     return (
@@ -127,7 +88,16 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
     );
   }
 
-  const { trials, nextPageToken, totalCount } = result;
+  const { nextPageToken, totalCount } = result;
+
+  // Attach Haversine distances from the origin to each trial's nearest facility.
+  let trials = enrichTrialsWithDistance(result.trials, origin);
+  if (sortByDistance && origin) {
+    trials = [...trials].sort(
+      (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity)
+    );
+  }
+  const markers = buildTrialMarkers(trials, origin);
 
   if (trials.length === 0) {
     return (
@@ -141,11 +111,12 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
           <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{condition}</span>
           {location && (
             <>
-              {" "}near{" "}
+              {" "}
+              {radiusMiles !== undefined ? `within ${radiusMiles} mi of` : "near"}{" "}
               <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{location}</span>
             </>
           )}
-          . Try broadening your search by removing filters or searching without a location.
+          . Try broadening your search by removing filters, widening the distance, or searching without a location.
         </p>
         <div className="mt-6 flex flex-wrap gap-2 justify-center">
           <Link
@@ -172,16 +143,19 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
   if (status) nextParams.set("status", status);
   if (recruitingOnly) nextParams.set("recruitingOnly", recruitingOnly);
   if (recent) nextParams.set("recent", recent);
+  if (sort) nextParams.set("sort", sort);
   if (phase) nextParams.set("phase", phase);
   if (ageGroup) nextParams.set("ageGroup", ageGroup);
   if (nextPageToken) nextParams.set("pageToken", nextPageToken);
 
   return (
     <>
-      {/* Map panel — streams in independently so trial cards render immediately */}
-      <Suspense fallback={null}>
-        <MapSection trials={trials} location={location} distance={distance} />
-      </Suspense>
+      {/* Map: markers come from precise API facility coordinates (no geocoding) */}
+      <MapPanel
+        markers={markers}
+        center={origin ? { lat: origin.lat, lon: origin.lon } : null}
+        radiusMiles={radiusMiles}
+      />
 
       {totalCount !== undefined && (
         <p className="text-sm text-[#6B7280] dark:text-[#8686A8] mb-5">
@@ -194,9 +168,15 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
           )}
           {location && (
             <>
-              {" "}near{" "}
+              {" "}
+              {radiusMiles !== undefined ? `within ${radiusMiles} mi of` : "near"}{" "}
               <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{location}</span>
             </>
+          )}
+          {sortByDistance && origin && (
+            <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--text-secondary)" }}>
+              Nearest first
+            </span>
           )}
           {recent === "1" && (
             <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--text-secondary)" }}>

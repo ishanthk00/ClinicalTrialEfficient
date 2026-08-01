@@ -53,6 +53,61 @@ export async function geocodeLocation(
   }
 }
 
+/**
+ * Geocode the user's search origin. Origin strings are the most ambiguous input
+ * (bare city names), so this fetches several candidates and picks the most
+ * prominent one by Nominatim's `importance` score instead of blindly taking the
+ * first hit. Results are cached under a dedicated key namespace.
+ */
+export async function geocodeOrigin(
+  query: string
+): Promise<GeocodeResult | null> {
+  const base = normalizeKey(query);
+  if (!base) return null;
+  const key = `origin:${base}`;
+  if (cache.has(key)) return cache.get(key)!;
+
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(
+    query
+  )}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "TrialFind/1.0 (clinical trial finder)",
+      },
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) {
+      cache.set(key, null);
+      return null;
+    }
+    const data = (await res.json()) as Array<{
+      lat: string;
+      lon: string;
+      display_name: string;
+      importance?: number;
+    }>;
+    if (data.length === 0) {
+      cache.set(key, null);
+      return null;
+    }
+    const best = data.reduce((a, b) =>
+      (b.importance ?? 0) > (a.importance ?? 0) ? b : a
+    );
+    const result: GeocodeResult = {
+      lat: parseFloat(best.lat),
+      lon: parseFloat(best.lon),
+      displayName: best.display_name,
+    };
+    cache.set(key, result);
+    return result;
+  } catch {
+    cache.set(key, null);
+    return null;
+  }
+}
+
 export async function geocodeMany(
   queries: string[]
 ): Promise<Map<string, GeocodeResult | null>> {

@@ -101,6 +101,17 @@ export default function FilterPanel() {
     router.push(`/results?${params.toString()}`);
   }
 
+  function toggleSort(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("sort") === value) {
+      params.delete("sort");
+    } else {
+      params.set("sort", value);
+    }
+    params.delete("pageToken");
+    router.push(`/results?${params.toString()}`);
+  }
+
   function clearAll() {
     const params = new URLSearchParams();
     const condition = searchParams.get("condition");
@@ -115,6 +126,8 @@ export default function FilterPanel() {
   const currentStatus = searchParams.get("status");
   const recruitingOnly = searchParams.get("recruitingOnly") === "1";
   const recent = searchParams.get("recent") === "1";
+  const hasLocation = !!searchParams.get("location");
+  const sortByDistance = searchParams.get("sort") === "distance";
 
   // Recruiting toggle is disabled when a specific non-recruiting status is active
   const recruitingDisabled = !!currentStatus && currentStatus !== "RECRUITING";
@@ -122,7 +135,8 @@ export default function FilterPanel() {
   const activeFilters =
     FILTER_GROUPS.filter((g) => searchParams.has(g.key)).length +
     (recruitingOnly ? 1 : 0) +
-    (recent ? 1 : 0);
+    (recent ? 1 : 0) +
+    (sortByDistance ? 1 : 0);
 
   return (
     <aside className="space-y-6">
@@ -144,11 +158,20 @@ export default function FilterPanel() {
         <h3 className="text-xs font-medium text-[#6B7280] dark:text-[#8686A8] uppercase tracking-wide mb-2.5">
           Sort by
         </h3>
-        <Toggle
-          label="Recently updated"
-          checked={recent}
-          onChange={() => toggleBoolParam("recent")}
-        />
+        <div className="flex flex-col gap-1">
+          <Toggle
+            label="Nearest first"
+            checked={sortByDistance && hasLocation}
+            disabled={!hasLocation}
+            disabledHint="Add a location to sort trials by distance"
+            onChange={() => toggleSort("distance")}
+          />
+          <Toggle
+            label="Recently updated"
+            checked={recent}
+            onChange={() => toggleBoolParam("recent")}
+          />
+        </div>
       </div>
 
       {/* Quick recruitment toggle */}

@@ -6,6 +6,7 @@ export interface TrialLocation {
   state?: string;
   country?: string;
   status?: string;
+  geoPoint?: { lat: number; lon: number };
 }
 
 export interface TrialContact {
@@ -31,6 +32,8 @@ export interface Trial {
   officialTitle?: string;
   sponsor?: string;
   interventions?: string[];
+  /** Great-circle distance (km) from the search origin to the nearest facility. */
+  distanceKm?: number;
 }
 
 export interface SearchResult {
@@ -62,13 +65,20 @@ function parseTrial(study: Record<string, unknown>): Trial {
   const arms = proto.armsInterventionsModule as Record<string, unknown> | undefined;
 
   const rawLocations = (contacts?.locations as Record<string, unknown>[] | undefined) ?? [];
-  const locations: TrialLocation[] = rawLocations.map((l) => ({
-    facility: l.facility as string | undefined,
-    city: l.city as string | undefined,
-    state: l.state as string | undefined,
-    country: l.country as string | undefined,
-    status: l.status as string | undefined,
-  }));
+  const locations: TrialLocation[] = rawLocations.map((l) => {
+    const gp = l.geoPoint as { lat?: number; lon?: number } | undefined;
+    return {
+      facility: l.facility as string | undefined,
+      city: l.city as string | undefined,
+      state: l.state as string | undefined,
+      country: l.country as string | undefined,
+      status: l.status as string | undefined,
+      geoPoint:
+        gp && typeof gp.lat === "number" && typeof gp.lon === "number"
+          ? { lat: gp.lat, lon: gp.lon }
+          : undefined,
+    };
+  });
 
   const rawContacts =
     (contacts?.centralContacts as Record<string, unknown>[] | undefined) ?? [];
@@ -126,11 +136,30 @@ export async function searchTrials(params: {
   ageGroup?: string;
   pageToken?: string;
   pageSize?: number;
+  /** Geocoded origin coordinates (used for the native geo-radius filter). */
+  originLat?: number;
+  originLon?: number;
+  /** Radius in miles; combined with origin to build filter.geo=distance(...). */
+  radiusMiles?: number;
 }): Promise<SearchResult> {
   const query = new URLSearchParams();
 
   if (params.condition) query.set("query.cond", params.condition);
-  if (params.location) query.set("query.locn", params.location);
+
+  // Proximity: prefer ClinicalTrials.gov's native geo-radius filter when we have
+  // geocoded origin coordinates and a radius. It uses each facility's real
+  // coordinates rather than the naive full-text matching of query.locn (which
+  // matches "Boston, UK" / "Boston Scientific" and misses nearby "Cambridge, MA").
+  const hasOrigin =
+    params.originLat !== undefined && params.originLon !== undefined;
+  if (hasOrigin && params.radiusMiles !== undefined) {
+    query.set(
+      "filter.geo",
+      `distance(${params.originLat},${params.originLon},${params.radiusMiles}mi)`
+    );
+  } else if (params.location) {
+    query.set("query.locn", params.location);
+  }
   if (params.status) {
     query.set("filter.overallStatus", params.status);
   } else if (params.recruitingOnly) {

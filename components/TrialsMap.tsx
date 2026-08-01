@@ -10,7 +10,14 @@ export interface MapMarker {
   key: string;
   lat: number;
   lon: number;
+  /** Great-circle distance (km) from the search origin, when one is set. */
+  distanceKm?: number;
   trials: { nctId: string; title: string; status: string }[];
+}
+
+function milesLabel(km: number): string {
+  const mi = km / 1.60934;
+  return mi < 10 ? `${mi.toFixed(1)} mi` : `${Math.round(mi)} mi`;
 }
 
 interface TrialsMapProps {
@@ -109,6 +116,11 @@ export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapPro
               <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-primary,#111827)" }}>
                 {m.trials.length} trial{m.trials.length > 1 ? "s" : ""} at this location
               </p>
+              {m.distanceKm !== undefined && (
+                <p className="text-[11px] mb-1.5" style={{ color: "var(--text-tertiary,#9CA3AF)" }}>
+                  ≈ {milesLabel(m.distanceKm)} from your search location
+                </p>
+              )}
               <ul className="space-y-1">
                 {m.trials.map((t) => (
                   <li key={t.nctId}>

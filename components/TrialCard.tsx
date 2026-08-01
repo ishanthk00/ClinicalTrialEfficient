@@ -23,6 +23,16 @@ export default function TrialCard({ trial, index = 0 }: { trial: Trial; index?: 
   const snippet = getSnippet(trial.briefSummary);
   const extraLocations = trial.locations.length > 1 ? `+${trial.locations.length - 1} more` : null;
   const delay = `${Math.min(index, 9) * 45}ms`;
+  const distanceMi =
+    trial.distanceKm !== undefined
+      ? trial.distanceKm / 1.60934
+      : undefined;
+  const distanceLabel =
+    distanceMi !== undefined
+      ? distanceMi < 10
+        ? `${distanceMi.toFixed(1)} mi`
+        : `${Math.round(distanceMi)} mi`
+      : undefined;
 
   return (
     <Link href={`/trial/${trial.nctId}`} className="block group">
@@ -66,18 +76,33 @@ export default function TrialCard({ trial, index = 0 }: { trial: Trial; index?: 
 
         {/* Footer */}
         <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#F3F4F6] dark:border-[#191924]">
-          {location ? (
-            <span className="flex items-center gap-1.5 text-xs text-[#6B7280] dark:text-[#8686A8]">
-              <MapPin size={12} className="shrink-0" />
-              {location}
-              {extraLocations && (
-                <span className="text-[#9CA3AF] dark:text-[#44445E]">{extraLocations}</span>
-              )}
-            </span>
-          ) : (
-            <span className="text-xs text-[#9CA3AF] dark:text-[#44445E]">Multiple locations</span>
-          )}
-          <span className="flex items-center gap-1 text-xs font-medium text-[#2563EB] dark:text-[#5B9BFF] opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 min-w-0">
+            {location ? (
+              <span className="flex items-center gap-1.5 text-xs text-[#6B7280] dark:text-[#8686A8] min-w-0">
+                <MapPin size={12} className="shrink-0" />
+                <span className="truncate">{location}</span>
+                {extraLocations && (
+                  <span className="shrink-0 text-[#9CA3AF] dark:text-[#44445E]">{extraLocations}</span>
+                )}
+              </span>
+            ) : (
+              <span className="text-xs text-[#9CA3AF] dark:text-[#44445E]">Multiple locations</span>
+            )}
+            {distanceLabel && (
+              <span
+                className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                style={{
+                  background: "var(--accent-bg)",
+                  color: "var(--accent)",
+                  border: "1px solid var(--border)",
+                }}
+                title="Distance to the nearest study site"
+              >
+                {distanceLabel}
+              </span>
+            )}
+          </div>
+          <span className="flex items-center gap-1 shrink-0 text-xs font-medium text-[#2563EB] dark:text-[#5B9BFF] opacity-0 group-hover:opacity-100 transition-opacity">
             View details
             <ArrowRight size={12} />
           </span>
