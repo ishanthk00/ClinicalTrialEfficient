@@ -35,11 +35,13 @@ export default function BookmarkButton({
       onAnimationEnd={() => setBouncing(false)}
       aria-label={saved ? "Remove bookmark" : "Bookmark this trial"}
       aria-pressed={saved}
-      className={`${btnSize} rounded-lg border transition-[background-color,border-color,color] duration-200 ease-out ${bouncing ? "bookmark-pop" : ""} ${
-        saved
-          ? "bg-[#2563EB] dark:bg-[#5B9BFF] border-[#2563EB] dark:border-[#5B9BFF] text-white"
-          : "bg-white dark:bg-[#181820] border-[#E5E7EB] dark:border-[#222232] text-[#6B7280] dark:text-[#8686A8] hover:border-[#2563EB] dark:hover:border-[#5B9BFF] hover:text-[#2563EB] dark:hover:text-[#5B9BFF]"
-      }`}
+      className={`${btnSize} border transition-[background-color,border-color,color] duration-200 ease-out ${bouncing ? "bookmark-pop" : ""}`}
+      style={{
+        borderRadius: "var(--radius)",
+        background: saved ? "var(--accent)" : "var(--bg-elevated)",
+        borderColor: saved ? "var(--accent)" : "var(--border)",
+        color: saved ? "#FFFFFF" : "var(--text-secondary)",
+      }}
     >
       {/* Cross-fade between outline and filled — avoids hard swap */}
       <span className="relative block" style={{ width: iconSize, height: iconSize }}>

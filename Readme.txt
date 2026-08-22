@@ -1,0 +1,3 @@
+What is TrialFind?
+
+ TrialFind is a stateless Next.js application that turns three unrelated upstream APIs — a federal trial registry, an open geocoder, and a hosted LLM — into a single plain-English search experience. No database, no session store, no background jobs. Everything below is what fills that gap: a defensive parser, a set of small geospatial routines, and a four-tier caching strategy that keeps the upstream call count near the floor. 

@@ -13,14 +13,16 @@ export default function ThemeToggle() {
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       className="
         relative flex items-center justify-center
-        w-8 h-8 rounded-lg
-        border border-[#D2D2D7] dark:border-[#222232]
-        bg-white dark:bg-[#181820]
-        text-[#6E6E73] dark:text-[#8686A8]
+        w-8 h-8 border
         hover:border-[var(--accent)] hover:text-[var(--accent)]
         transition-all duration-200
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2
       "
+      style={{
+        borderRadius: "var(--radius)",
+        borderColor: "var(--border)",
+        background: "var(--bg-elevated)",
+        color: "var(--text-secondary)",
+      }}
     >
       <span
         className="absolute inset-0 flex items-center justify-center transition-all duration-300"

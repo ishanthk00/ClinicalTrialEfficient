@@ -1,17 +1,27 @@
+/** Placeholder shaped like a loaded `.v4-row` — hairline border, 12px radius,
+ *  full-width row rather than a grid tile. */
 export default function SkeletonCard() {
   return (
-    <div className="bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-2xl p-5 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="skeleton-line h-5 w-24 rounded-full" />
-        <div className="skeleton-line h-5 w-16 rounded-full" />
+    <div
+      className="v4-card p-5 sm:p-6 overflow-hidden"
+      aria-hidden="true"
+    >
+      {/* Meta line */}
+      <div className="flex items-center" style={{ gap: 12, marginBottom: 8 }}>
+        <div className="skeleton-line h-6 w-32" style={{ borderRadius: "var(--radius)" }} />
+        <div className="skeleton-line h-4 w-16 rounded" />
+        <div className="skeleton-line h-4 w-24 rounded" />
       </div>
-      <div className="skeleton-line h-4 rounded mb-2 w-full" />
-      <div className="skeleton-line h-4 rounded mb-4 w-3/4" />
-      <div className="skeleton-line h-3 rounded mb-1.5 w-full" />
-      <div className="skeleton-line h-3 rounded mb-4 w-5/6" />
-      <div className="pt-3 border-t border-[#F3F4F6] dark:border-[#191924]">
-        <div className="skeleton-line h-3 w-32 rounded" />
-      </div>
+
+      {/* Title */}
+      <div className="skeleton-line h-5 w-11/12 rounded" style={{ marginBottom: 10 }} />
+
+      {/* Snippet */}
+      <div className="skeleton-line h-4 w-full rounded" style={{ marginBottom: 6, maxWidth: "62ch" }} />
+      <div className="skeleton-line h-4 w-4/5 rounded" style={{ maxWidth: "62ch" }} />
+
+      {/* Site line */}
+      <div className="skeleton-line h-3 w-64 rounded" style={{ marginTop: 12 }} />
     </div>
   );
 }

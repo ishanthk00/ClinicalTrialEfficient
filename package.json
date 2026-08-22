@@ -9,11 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
     "clsx": "^2.1.1",
+    "csv-parse": "^7.0.2",
     "groq-sdk": "^1.1.2",
+    "iconv-lite": "^0.7.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.400.0",
     "next": "^16.2.6",
+    "node-html-parser": "^9.0.1",
     "react": "^18",
     "react-dom": "^18",
     "react-leaflet": "^4.2.1",

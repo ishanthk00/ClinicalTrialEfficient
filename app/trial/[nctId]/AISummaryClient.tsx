@@ -1,49 +1,118 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Loader2, Bookmark, ExternalLink } from "lucide-react";
 import EligibilitySection from "@/components/EligibilitySection";
+import TrialTabs, { type TrialTab } from "@/components/TrialTabs";
+import { isBookmarked, toggleBookmark } from "@/lib/bookmark";
+import { formatMiles } from "@/lib/distance";
 import type { Trial } from "@/lib/clinicaltrials";
 import type { AISummary } from "@/lib/summarize";
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+/* ── shared type styles ── */
+
+const BODY: React.CSSProperties = {
+  fontSize: 16,
+  lineHeight: 1.7,
+  color: "var(--text-body)",
+  maxWidth: "62ch",
+  margin: 0,
+};
+
+const NOTE: React.CSSProperties = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: "var(--text-secondary)",
+  maxWidth: "62ch",
+  margin: 0,
+};
+
+/** SCREAMING_SNAKE_CASE → Title Case. */
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/** "DRUG: Pembrolizumab" → "Drug: Pembrolizumab". */
+function formatIntervention(raw: string): string {
+  const text = raw.trim();
+  const split = text.indexOf(":");
+  if (split === -1) return text;
+  const type = titleCase(text.slice(0, split));
+  const name = text.slice(split + 1).trim();
+  if (!type) return name;
+  if (!name) return type;
+  return `${type}: ${name}`;
+}
+
+/** Strip an extension and any punctuation so `tel:` dials cleanly. */
+function telHref(phone: string): string {
+  const [main] = phone.split(/\s*(?:ext\.?|x)\s*/i);
+  return `tel:${main.replace(/[^\d+]/g, "")}`;
+}
+
+/** One hairline-separated fact row inside the study `<dl>`. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-xl p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-[#111827] dark:text-[#EAEAF5] mb-4">{title}</h2>
-      {children}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        paddingBlock: 10,
+      }}
+    >
+      <dt style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</dt>
+      <dd style={{ fontSize: 16, color: "var(--text)", margin: 0, overflowWrap: "anywhere" }}>
+        {children}
+      </dd>
     </div>
   );
 }
 
-function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-
+/** Quiet disclosure for the verbatim protocol text the summaries are drawn from. */
+function SourceText({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-xl shadow-sm overflow-hidden">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 text-left"
+    <details style={{ marginTop: 24 }}>
+      <summary
+        style={{
+          fontSize: 13,
+          color: "var(--text-secondary)",
+          cursor: "pointer",
+          listStyle: "revert",
+        }}
       >
-        <span className="text-base font-semibold text-[#111827] dark:text-[#EAEAF5]">{title}</span>
-        {open ? (
-          <ChevronUp size={16} className="text-[#6B7280] dark:text-[#8686A8]" />
-        ) : (
-          <ChevronDown size={16} className="text-[#6B7280] dark:text-[#8686A8]" />
-        )}
-      </button>
-      {open && (
-        <div className="px-6 pb-6 border-t border-[#F3F4F6] dark:border-[#191924]">
-          {children}
-        </div>
-      )}
-    </div>
+        {label}
+      </summary>
+      <div
+        style={{
+          marginTop: 12,
+          padding: 16,
+          borderRadius: "var(--radius)",
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border)",
+          maxHeight: 340,
+          overflow: "auto",
+        }}
+      >
+        {children}
+      </div>
+    </details>
   );
 }
+
+const SITES_SHOWN = 8;
 
 export default function AISummaryClient({ trial }: { trial: Trial }) {
   const [summary, setSummary] = useState<AISummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  const [saved, setSaved] = useState(false);
+  const [allSites, setAllSites] = useState(false);
 
   useEffect(() => {
     const cacheKey = `trialfind_summary_${trial.nctId}`;
@@ -83,152 +152,284 @@ export default function AISummaryClient({ trial }: { trial: Trial }) {
       .finally(() => setLoading(false));
   }, [trial]);
 
-  const primaryLocation = trial.locations[0];
-  const primaryContact = trial.contacts[0];
+  useEffect(() => {
+    setSaved(isBookmarked(trial.nctId));
+  }, [trial.nctId]);
+
+  /* ── action block ── */
+
+  const recordUrl = `https://clinicaltrials.gov/study/${trial.nctId}`;
+  const contact = trial.contacts.find((c) => c.email || c.phone) ?? trial.contacts[0];
+  const askByEmail = contact?.email
+    ? `mailto:${contact.email}?subject=${encodeURIComponent(
+        `Question about study ${trial.nctId}`
+      )}`
+    : undefined;
+  const askByPhone = contact?.phone ? telHref(contact.phone) : undefined;
+  const askHref = askByEmail ?? askByPhone ?? recordUrl;
+  const askIsExternal = askHref === recordUrl;
+
+  /* ── tab 1: what it involves ── */
+
+  const plain = summary?.plainSummary?.trim();
+  const involved = summary?.involved?.trim();
+  const interventions = (trial.interventions ?? [])
+    .map(formatIntervention)
+    .filter((i) => i.length > 1);
+  const studyTypeLabel = trial.studyType ? titleCase(trial.studyType) : undefined;
+
+  const involvesPanel = (
+    <div>
+      {plain ? (
+        <p style={BODY}>{plain}</p>
+      ) : trial.briefSummary ? (
+        <p style={BODY}>{trial.briefSummary}</p>
+      ) : loading ? (
+        <p style={{ ...NOTE, display: "flex", alignItems: "center", gap: 8 }}>
+          <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+          Reading the study description&hellip;
+        </p>
+      ) : (
+        <p style={NOTE}>This record does not include a description of the study.</p>
+      )}
+
+      {involved && <p style={{ ...BODY, marginTop: 16 }}>{involved}</p>}
+
+      {plain && (
+        <p style={{ ...NOTE, marginTop: 12, color: "var(--text-tertiary)" }}>
+          Put into plain language from the study record.
+        </p>
+      )}
+
+      <dl
+        className="v4-divide"
+        style={{
+          margin: "28px 0 0",
+          borderTop: "1px solid var(--border-subtle)",
+        }}
+      >
+        {trial.startDate && <Fact label="Starts">{trial.startDate}</Fact>}
+        {trial.enrollment !== undefined && (
+          <Fact label="People enrolled">{trial.enrollment.toLocaleString("en-US")}</Fact>
+        )}
+        {trial.sponsor && <Fact label="Run by">{trial.sponsor}</Fact>}
+        {trial.primaryPurpose && <Fact label="Purpose">{titleCase(trial.primaryPurpose)}</Fact>}
+        {(studyTypeLabel || interventions.length > 0) && (
+          <Fact label="Design">
+            {studyTypeLabel}
+            {interventions.length > 0 && (
+              <span
+                style={{
+                  display: "block",
+                  marginTop: studyTypeLabel ? 4 : 0,
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {interventions.join(" · ")}
+              </span>
+            )}
+          </Fact>
+        )}
+        {trial.officialTitle && trial.officialTitle !== trial.title && (
+          <Fact label="Official title">{trial.officialTitle}</Fact>
+        )}
+      </dl>
+
+      {plain && trial.briefSummary && (
+        <SourceText label="Read the description exactly as the study wrote it">
+          <p style={{ ...BODY, maxWidth: "70ch", color: "var(--text-secondary)" }}>
+            {trial.briefSummary}
+          </p>
+        </SourceText>
+      )}
+    </div>
+  );
+
+  /* ── tab 2: who it is for ── */
+
+  const whoPanel = (
+    <div>
+      <EligibilitySection summary={summary} loading={loading} error={error} />
+      <p style={{ ...NOTE, marginTop: 28 }}>
+        These are summaries of the protocol text, not a decision. Plenty of people who read a line
+        here and assume they are ruled out turn out to be eligible &mdash; the study team confirms.
+      </p>
+      {trial.eligibilityCriteria && (
+        <SourceText label="Read the eligibility criteria exactly as the protocol states them">
+          <p
+            style={{
+              margin: 0,
+              whiteSpace: "pre-wrap",
+              fontSize: 13,
+              lineHeight: 1.7,
+              color: "var(--text-secondary)",
+            }}
+          >
+            {trial.eligibilityCriteria}
+          </p>
+        </SourceText>
+      )}
+    </div>
+  );
+
+  /* ── tab 3: where ── */
+
+  const sites = allSites ? trial.locations : trial.locations.slice(0, SITES_SHOWN);
+  const hiddenSites = trial.locations.length - sites.length;
+
+  const wherePanel = (
+    <div>
+      {trial.locations.length === 0 ? (
+        <p style={NOTE}>
+          This record does not list study sites yet. The study team can tell you where taking part
+          would happen.
+        </p>
+      ) : (
+        <ul
+          className="v4-divide"
+          style={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            borderTop: "1px solid var(--border-subtle)",
+          }}
+        >
+          {sites.map((loc, i) => {
+            const place = [loc.city, loc.state, loc.country].filter(Boolean).join(", ");
+            const heading = loc.facility ?? place;
+            // `distanceKm` is the distance to the *nearest* facility, so it is only
+            // truthful against the first row — never repeated down the list.
+            const distance =
+              i === 0 && trial.distanceKm !== undefined
+                ? formatMiles(trial.distanceKm)
+                : undefined;
+            return (
+              <li
+                key={`${loc.facility ?? ""}-${place}-${i}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  alignItems: "baseline",
+                  gap: 16,
+                  paddingBlock: 12,
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 16,
+                      lineHeight: 1.4,
+                      color: "var(--text)",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {heading || "Site not named"}
+                  </span>
+                  {loc.facility && place && (
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 2,
+                        fontSize: 13,
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {place}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{distance}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {hiddenSites > 0 && (
+        <button type="button" className="v4-link-quiet" onClick={() => setAllSites(true)}>
+          Show all {trial.locations.length} locations
+        </button>
+      )}
+
+      <p style={{ ...NOTE, marginTop: 20 }}>
+        Many studies cover travel costs to the nearest site. It is a fair question to ask before
+        you agree to screening.
+        {trial.lastUpdatePostDate ? ` Record last updated ${trial.lastUpdatePostDate}.` : ""}
+      </p>
+    </div>
+  );
+
+  const tabs: TrialTab[] = [
+    { id: "involves", label: "What it involves", panel: involvesPanel },
+    { id: "who", label: "Who it is for", panel: whoPanel },
+    { id: "where", label: "Where", panel: wherePanel },
+  ];
 
   return (
-    <div className="space-y-4">
-      <SectionCard title="What is this trial?">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-[#6B7280] dark:text-[#8686A8]">
-            <Loader2 size={14} className="animate-spin" />
-            Generating plain-language summary...
-          </div>
-        ) : error ? (
-          <p className="text-sm text-[#6B7280] dark:text-[#8686A8] leading-relaxed">
-            {trial.briefSummary ?? "No summary available for this trial."}
-          </p>
-        ) : (
-          <p className="text-sm text-[#374151] dark:text-[#CDCDE4] leading-relaxed">
-            {summary?.plainSummary}
-          </p>
-        )}
-      </SectionCard>
+    <div>
+      {/* ── Action block ── */}
+      <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 12 }}>
+        <a
+          className="v4-btn"
+          href={askHref}
+          style={{ width: "100%" }}
+          {...(askIsExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        >
+          Ask the study team a question
+        </a>
 
-      <SectionCard title="Am I eligible?">
-        <EligibilitySection summary={summary} loading={loading} error={error} />
-      </SectionCard>
-
-      <SectionCard title="What's involved?">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-[#6B7280] dark:text-[#8686A8]">
-            <Loader2 size={14} className="animate-spin" />
-            Summarizing study design...
-          </div>
-        ) : summary?.involved ? (
-          <p className="text-sm text-[#374151] dark:text-[#CDCDE4] leading-relaxed">
-            {summary.involved}
-          </p>
-        ) : (
-          <p className="text-sm text-[#6B7280] dark:text-[#8686A8]">
-            Study design details are not available for this trial.
-          </p>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Where and how to apply">
-        <div className="space-y-4">
-          {primaryLocation && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1.5">
-                Primary location
-              </p>
-              <p className="text-sm font-medium text-[#111827] dark:text-[#EAEAF5]">
-                {primaryLocation.facility}
-              </p>
-              <p className="text-sm text-[#6B7280] dark:text-[#8686A8]">
-                {[primaryLocation.city, primaryLocation.state, primaryLocation.country]
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-              {trial.locations.length > 1 && (
-                <p className="text-xs text-[#6B7280] dark:text-[#8686A8] mt-1">
-                  +{trial.locations.length - 1} additional location
-                  {trial.locations.length > 2 ? "s" : ""}
-                </p>
-              )}
-            </div>
-          )}
-
-          {primaryContact && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1.5">
-                Contact
-              </p>
-              {primaryContact.name && (
-                <p className="text-sm font-medium text-[#111827] dark:text-[#EAEAF5]">
-                  {primaryContact.name}
-                </p>
-              )}
-              {primaryContact.phone && (
-                <a href={`tel:${primaryContact.phone}`} className="text-sm text-[#2563EB] dark:text-[#5B9BFF] hover:underline block">
-                  {primaryContact.phone}
-                </a>
-              )}
-              {primaryContact.email && (
-                <a href={`mailto:${primaryContact.email}`} className="text-sm text-[#2563EB] dark:text-[#5B9BFF] hover:underline block">
-                  {primaryContact.email}
-                </a>
-              )}
-            </div>
-          )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <button
+            type="button"
+            className="v4-btn-outline"
+            aria-pressed={saved}
+            onClick={() => setSaved(toggleBookmark(trial))}
+            style={{ flex: "1 1 200px" }}
+          >
+            <Bookmark
+              size={16}
+              strokeWidth={2}
+              fill={saved ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
+            {saved ? "Saved for later" : "Save for later"}
+          </button>
 
           <a
-            href={`https://clinicaltrials.gov/study/${trial.nctId}`}
+            className="v4-btn-outline"
+            href={recordUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2563EB] dark:bg-[#5B9BFF] text-white text-sm font-medium rounded-xl hover:bg-[#1D4ED8] dark:hover:bg-[#7DB2FF] transition-colors"
+            style={{ flex: "1 1 200px" }}
           >
-            View on ClinicalTrials.gov
-            <ExternalLink size={14} />
+            Full record
+            <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
-      </SectionCard>
 
-      <CollapsibleSection title="Official details">
-        <div className="mt-4 space-y-4 text-sm">
-          {trial.officialTitle && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">
-                Official title
-              </p>
-              <p className="text-[#374151] dark:text-[#CDCDE4]">{trial.officialTitle}</p>
-            </div>
-          )}
-          {trial.sponsor && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">Sponsor</p>
-              <p className="text-[#374151] dark:text-[#CDCDE4]">{trial.sponsor}</p>
-            </div>
-          )}
-          {trial.studyType && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">Study type</p>
-              <p className="text-[#374151] dark:text-[#CDCDE4]">{trial.studyType}</p>
-            </div>
-          )}
-          {trial.enrollment !== undefined && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">Enrollment target</p>
-              <p className="text-[#374151] dark:text-[#CDCDE4]">{trial.enrollment} participants</p>
-            </div>
-          )}
-          {trial.eligibilityCriteria && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">Raw eligibility criteria</p>
-              <pre className="whitespace-pre-wrap text-[#374151] dark:text-[#CDCDE4] font-sans leading-relaxed bg-[#F9FAFB] dark:bg-[#181820] rounded-lg p-4 text-xs overflow-auto max-h-64">
-                {trial.eligibilityCriteria}
-              </pre>
-            </div>
-          )}
-          {trial.briefSummary && (
-            <div>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#44445E] uppercase tracking-wide font-medium mb-1">Official brief summary</p>
-              <p className="text-[#374151] dark:text-[#CDCDE4] leading-relaxed">{trial.briefSummary}</p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
+        <p style={{ ...NOTE, marginTop: 4 }}>
+          Asking a question is not a commitment. A coordinator answers by phone or email, and you
+          can stop at any point.
+        </p>
+
+        {contact && (contact.name || contact.phone || contact.email) && (
+          <p style={NOTE}>
+            {contact.name && <span>{contact.name}</span>}
+            {contact.name && (contact.phone || contact.email) && <span> &middot; </span>}
+            {contact.phone && <a href={telHref(contact.phone)}>{contact.phone}</a>}
+            {contact.phone && contact.email && <span> &middot; </span>}
+            {contact.email && <a href={`mailto:${contact.email}`}>{contact.email}</a>}
+          </p>
+        )}
+      </div>
+
+      {/* ── Tabbed detail ── */}
+      <div style={{ marginTop: 40 }}>
+        <TrialTabs tabs={tabs} label="About this study" />
+      </div>
     </div>
   );
 }

@@ -30,7 +30,7 @@ const TRIAL_ICON = L.divIcon({
   className: "",
   html: `<div style="
     width:12px;height:12px;
-    background:var(--accent,#075A7F);
+    background:var(--accent);
     border:2px solid #fff;
     border-radius:50%;
     box-shadow:0 1px 4px rgba(0,0,0,0.35);
@@ -40,11 +40,17 @@ const TRIAL_ICON = L.divIcon({
   popupAnchor: [0, -8],
 });
 
+/* Leaflet draws Circle strokes as SVG presentation attributes, which do not
+   resolve CSS custom properties — this one has to be a literal. Kept in sync
+   with --purple in app/globals.css (the v4 companion colour for supportive
+   marks; the previous orange was off-palette). */
+const ORIGIN_COLOR = "#6C5CA6";
+
 const USER_ICON = L.divIcon({
   className: "",
   html: `<div style="
     width:14px;height:14px;
-    background:#F97316;
+    background:${ORIGIN_COLOR};
     border:2px solid #fff;
     border-radius:50%;
     box-shadow:0 1px 4px rgba(0,0,0,0.4);
@@ -97,7 +103,7 @@ export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapPro
         <Circle
           center={[center.lat, center.lon]}
           radius={radiusMeters}
-          pathOptions={{ color: "#F97316", fillColor: "#F97316", fillOpacity: 0.07, weight: 1.5 }}
+          pathOptions={{ color: ORIGIN_COLOR, fillColor: ORIGIN_COLOR, fillOpacity: 0.07, weight: 1.5 }}
         />
       )}
 
@@ -113,11 +119,11 @@ export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapPro
         <Marker key={m.key} position={[m.lat, m.lon]} icon={TRIAL_ICON}>
           <Popup>
             <div style={{ minWidth: "180px", maxWidth: "240px" }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-primary,#111827)" }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: "var(--text)" }}>
                 {m.trials.length} trial{m.trials.length > 1 ? "s" : ""} at this location
               </p>
               {m.distanceKm !== undefined && (
-                <p className="text-[11px] mb-1.5" style={{ color: "var(--text-tertiary,#9CA3AF)" }}>
+                <p className="text-[11px] mb-1.5" style={{ color: "var(--text-tertiary)" }}>
                   ≈ {milesLabel(m.distanceKm)} from your search location
                 </p>
               )}
@@ -127,13 +133,13 @@ export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapPro
                     <Link
                       href={`/trial/${t.nctId}`}
                       className="text-xs hover:underline"
-                      style={{ color: "var(--accent,#075A7F)" }}
+                      style={{ color: "var(--accent)" }}
                     >
                       {t.title.length > 60 ? t.title.slice(0, 60) + "…" : t.title}
                     </Link>
                     <span
                       className="ml-1 text-[10px]"
-                      style={{ color: "var(--text-tertiary,#9CA3AF)" }}
+                      style={{ color: "var(--text-tertiary)" }}
                     >
                       {t.status.replace(/_/g, " ")}
                     </span>

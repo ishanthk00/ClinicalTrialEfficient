@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import ThemeProvider from "@/components/ThemeProvider";
-import MagneticButton from "@/components/MagneticButton";
+import ScrollInit from "@/components/ScrollInit";
+import SiteNav from "@/components/SiteNav";
 
 export const metadata: Metadata = {
   title: "TrialFind — Find Clinical Trials",
@@ -17,6 +18,14 @@ const themeScript = `(function(){
 
 const fontLink = "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap";
 
+const FOOTER_NAV: [string, string][] = [
+  ["Home", "/"],
+  ["Search trials", "/results"],
+  ["About", "/about"],
+  ["Reviews", "/reviews"],
+  ["Saved trials", "/saved"],
+];
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -26,109 +35,128 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href={fontLink} rel="stylesheet" />
       </head>
-      <body className="min-h-screen" style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}>
+      <body className="min-h-screen">
         {/* Scroll progress bar */}
         <div id="scroll-progress" className="scroll-progress" style={{ width: "0%" }} />
 
         <ThemeProvider>
-          {/* ── Floating pill nav ── */}
-          <nav className="sticky top-0 z-50 px-4 pt-3">
-            <div className="floating-nav max-w-[1200px] mx-auto px-6 h-14 flex items-center">
-              <Link
-                href="/"
-                className="text-lg font-bold tracking-tight shrink-0"
-                style={{ fontFamily: "'Outfit', sans-serif", color: "var(--accent)" }}
-              >
-                TrialFind
-              </Link>
+          {/* Drives #scroll-progress, --scroll-y and .reveal transitions */}
+          <ScrollInit />
 
-              {/* Center nav links */}
-              <div className="hidden md:flex items-center gap-6 ml-10">
-                <Link href="/results" className="nav-link text-sm py-1">Search</Link>
-                <Link href="/about" className="nav-link text-sm py-1">About</Link>
-              </div>
-
-              {/* Right: saved */}
-              <div className="ml-auto flex items-center gap-3">
-                <MagneticButton href="/saved" className="magnetic-btn-nav">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  Saved trials
-                </MagneticButton>
-              </div>
-            </div>
-          </nav>
+          <SiteNav />
 
           <div className="page-fade">
             {children}
           </div>
 
-          {/* ── Footer ── */}
+          {/* ── Footer — the one dark band in v4 ── */}
           <footer className="site-footer">
-            <div className="max-w-[1200px] mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-3 gap-10">
-              {/* Col 1 */}
-              <div>
-                <span
-                  className="text-lg font-bold"
-                  style={{ fontFamily: "'Outfit',sans-serif", color: "var(--accent)" }}
-                >
-                  TrialFind
-                </span>
-                <p className="text-sm mt-3 leading-relaxed" style={{ color: "var(--text-secondary)", maxWidth: "22ch" }}>
-                  Making clinical research accessible to everyone. Search 500,000+ trials in plain English.
-                </p>
-              </div>
-
-              {/* Col 2 */}
-              <div className="flex flex-col gap-2">
-                <span className="section-label mb-3">Navigation</span>
-                {([["Home", "/"], ["Search Trials", "/results"], ["About", "/about"], ["Saved Trials", "/saved"]] as [string, string][]).map(([label, href]) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="text-sm footer-link"
+            <div className="shell" style={{ paddingBlock: 64 }}>
+              <div className="grid12">
+                {/* Wordmark + mission */}
+                <div style={{ gridColumn: "1 / span 5" }}>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: "var(--fs-h5)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      color: "var(--footer-mark)",
+                    }}
                   >
-                    {label}
-                  </Link>
-                ))}
-              </div>
+                    TrialFind
+                  </span>
+                  <p
+                    style={{
+                      marginTop: 16,
+                      maxWidth: "62ch",
+                      fontSize: "var(--fs-body)",
+                      lineHeight: 1.7,
+                      color: "var(--footer-text)",
+                      opacity: 0.8,
+                    }}
+                  >
+                    Making clinical research understandable. Search 500,000+ studies in plain
+                    English, with the eligibility criteria explained before you ever pick up the
+                    phone.
+                  </p>
+                </div>
 
-              {/* Col 3 */}
-              <div className="flex flex-col gap-2">
-                <span className="section-label mb-3">Data &amp; Legal</span>
-                <a
-                  href="https://clinicaltrials.gov"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm footer-link"
+                {/* Navigation */}
+                <div
+                  className="flex flex-col items-start gap-3"
+                  style={{ gridColumn: "7 / span 2" }}
                 >
-                  ClinicalTrials.gov
-                </a>
-                {["Privacy", "Regulatory info", "Contact"].map((l) => (
-                  <a key={l} href="#" className="text-sm footer-link">{l}</a>
-                ))}
-              </div>
-            </div>
+                  <span className="footer-label">Navigation</span>
+                  {FOOTER_NAV.map(([label, href]) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="footer-link"
+                      style={{ fontSize: "var(--fs-body)" }}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </div>
 
-            {/* Bottom bar */}
-            <div
-              className="max-w-[1200px] mx-auto px-6 pb-6 pt-4 flex items-center justify-between"
-              style={{ borderTop: "1px solid var(--border-subtle)" }}
-            >
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                © 2025 TrialFind. Data sourced from{" "}
-                <a
-                  href="https://clinicaltrials.gov"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-2"
-                  style={{ color: "var(--text-secondary)" }}
+                {/* Data & legal */}
+                <div
+                  className="flex flex-col items-start gap-3"
+                  style={{ gridColumn: "9 / span 2" }}
                 >
-                  ClinicalTrials.gov
-                </a>
-                . Always consult a healthcare provider before enrolling.
-              </p>
+                  <span className="footer-label">Data &amp; legal</span>
+                  <a
+                    href="https://clinicaltrials.gov"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-link"
+                    style={{ fontSize: "var(--fs-body)" }}
+                  >
+                    ClinicalTrials.gov
+                  </a>
+                  <a href="#" className="footer-link" style={{ fontSize: "var(--fs-body)" }}>
+                    Privacy
+                  </a>
+                  <a href="#" className="footer-link" style={{ fontSize: "var(--fs-body)" }}>
+                    Regulatory info
+                  </a>
+                </div>
+
+                {/* Contact */}
+                <div
+                  className="flex flex-col items-start gap-3"
+                  style={{ gridColumn: "11 / span 2" }}
+                >
+                  <span className="footer-label">Talk to us</span>
+                  <a
+                    href="mailto:hello@trialfind.org"
+                    className="footer-link"
+                    style={{ fontSize: "var(--fs-body)" }}
+                  >
+                    hello@trialfind.org
+                  </a>
+                </div>
+
+                {/* Legal strip */}
+                <div
+                  className="flex flex-wrap items-center justify-between"
+                  style={{
+                    gridColumn: "1 / span 12",
+                    borderTop: "1px solid var(--footer-rule)",
+                    paddingTop: 20,
+                    marginTop: 24,
+                    gap: 24,
+                  }}
+                >
+                  <span style={{ fontSize: "var(--fs-small)", color: "var(--footer-label)" }}>
+                    © 2026 TrialFind. Data sourced from ClinicalTrials.gov.
+                  </span>
+                  <span style={{ fontSize: "var(--fs-small)", color: "var(--footer-label)" }}>
+                    Informational only — always consult a healthcare provider before enrolling.
+                  </span>
+                </div>
+              </div>
             </div>
           </footer>
         </ThemeProvider>

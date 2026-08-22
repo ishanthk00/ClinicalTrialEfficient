@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
 
+/** Query-param values are unchanged — only the labels are v4 copy. */
 const STATUS_OPTIONS = [
-  { value: "RECRUITING", label: "Recruiting" },
-  { value: "ACTIVE_NOT_RECRUITING", label: "Active, not recruiting" },
+  { value: "RECRUITING", label: "Recruiting now" },
+  { value: "NOT_YET_RECRUITING", label: "Opening soon" },
+  { value: "ACTIVE_NOT_RECRUITING", label: "Enrollment closed" },
   { value: "COMPLETED", label: "Completed" },
-  { value: "NOT_YET_RECRUITING", label: "Not yet recruiting" },
 ];
 
 const PHASE_OPTIONS = [
@@ -18,9 +18,9 @@ const PHASE_OPTIONS = [
 ];
 
 const AGE_OPTIONS = [
-  { value: "Child", label: "Child" },
-  { value: "Adult", label: "Adult" },
-  { value: "Older Adult", label: "Older Adult" },
+  { value: "Adult", label: "Adults" },
+  { value: "Older Adult", label: "Older adults" },
+  { value: "Child", label: "Children" },
 ];
 
 interface FilterGroup {
@@ -35,42 +35,30 @@ const FILTER_GROUPS: FilterGroup[] = [
   { label: "Age group", key: "ageGroup", options: AGE_OPTIONS },
 ];
 
-function Toggle({
+function Chip({
   label,
-  checked,
+  active,
   disabled,
   disabledHint,
-  onChange,
+  onClick,
 }: {
   label: string;
-  checked: boolean;
+  active: boolean;
   disabled?: boolean;
   disabledHint?: string;
-  onChange: () => void;
+  onClick: () => void;
 }) {
   return (
     <button
-      onClick={disabled ? undefined : onChange}
+      type="button"
+      className="v4-chip"
+      aria-pressed={active}
+      aria-disabled={disabled || undefined}
       title={disabled ? disabledHint : undefined}
-      className={`flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-all ${
-        disabled
-          ? "opacity-40 cursor-not-allowed"
-          : "cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[#181820]"
-      } ${checked && !disabled ? "bg-[#EFF6FF] dark:bg-[#0B1828]" : ""}`}
-      style={{ color: checked && !disabled ? "var(--accent,#2563EB)" : "var(--text-primary,#374151)" }}
+      onClick={disabled ? undefined : onClick}
+      style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
     >
-      <span className={checked && !disabled ? "font-medium" : ""}>{label}</span>
-      <span
-        className="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors"
-        style={{
-          background: checked && !disabled ? "var(--accent,#2563EB)" : "var(--border,#E5E7EB)",
-        }}
-      >
-        <span
-          className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
-          style={{ transform: checked && !disabled ? "translateX(13px)" : "translateX(1px)" }}
-        />
-      </span>
+      {label}
     </button>
   );
 }
@@ -139,84 +127,57 @@ export default function FilterPanel() {
     (sortByDistance ? 1 : 0);
 
   return (
-    <aside className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[#111827] dark:text-[#EAEAF5]">Filters</h2>
-        {activeFilters > 0 && (
-          <button
-            onClick={clearAll}
-            className="text-xs text-[#6B7280] dark:text-[#8686A8] hover:text-[#111827] dark:hover:text-[#EAEAF5] flex items-center gap-1 transition-colors"
-          >
-            <X size={12} />
-            Clear all
-          </button>
-        )}
-      </div>
+    <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+      <span
+        style={{
+          fontSize: "var(--fs-small)",
+          color: "var(--text-secondary)",
+          marginRight: 4,
+        }}
+      >
+        Narrow by
+      </span>
 
-      {/* Sort */}
-      <div>
-        <h3 className="text-xs font-medium text-[#6B7280] dark:text-[#8686A8] uppercase tracking-wide mb-2.5">
-          Sort by
-        </h3>
-        <div className="flex flex-col gap-1">
-          <Toggle
-            label="Nearest first"
-            checked={sortByDistance && hasLocation}
-            disabled={!hasLocation}
-            disabledHint="Add a location to sort trials by distance"
-            onChange={() => toggleSort("distance")}
-          />
-          <Toggle
-            label="Recently updated"
-            checked={recent}
-            onChange={() => toggleBoolParam("recent")}
-          />
-        </div>
-      </div>
-
-      {/* Quick recruitment toggle */}
-      <div>
-        <h3 className="text-xs font-medium text-[#6B7280] dark:text-[#8686A8] uppercase tracking-wide mb-2.5">
-          Recruitment
-        </h3>
-        <Toggle
-          label="Recruiting only"
-          checked={recruitingOnly || currentStatus === "RECRUITING"}
-          disabled={recruitingDisabled}
-          disabledHint="Clear the Status filter first to use this toggle"
-          onChange={() => toggleBoolParam("recruitingOnly")}
-        />
-      </div>
-
-      {/* Existing detailed filter groups */}
-      {FILTER_GROUPS.map((group) => {
+      {FILTER_GROUPS.flatMap((group) => {
         const current = searchParams.get(group.key);
-        return (
-          <div key={group.key}>
-            <h3 className="text-xs font-medium text-[#6B7280] dark:text-[#8686A8] uppercase tracking-wide mb-2.5">
-              {group.label}
-            </h3>
-            <div className="flex flex-col gap-1">
-              {group.options.map((opt) => {
-                const active = current === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => updateFilter(group.key, opt.value)}
-                    className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                      active
-                        ? "bg-[#EFF6FF] dark:bg-[#0B1828] text-[#2563EB] dark:text-[#5B9BFF] font-medium"
-                        : "text-[#374151] dark:text-[#EAEAF5] hover:bg-[#F9FAFB] dark:hover:bg-[#181820]"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
+        return group.options.map((opt) => (
+          <Chip
+            key={`${group.key}:${opt.value}`}
+            label={opt.label}
+            active={current === opt.value}
+            onClick={() => updateFilter(group.key, opt.value)}
+          />
+        ));
       })}
-    </aside>
+
+      <Chip
+        label="Recruiting only"
+        active={recruitingOnly || currentStatus === "RECRUITING"}
+        disabled={recruitingDisabled}
+        disabledHint="Clear the Status filter first to use this toggle"
+        onClick={() => toggleBoolParam("recruitingOnly")}
+      />
+      <Chip
+        label="Recently updated"
+        active={recent}
+        onClick={() => toggleBoolParam("recent")}
+      />
+      <Chip
+        label="Nearest first"
+        active={sortByDistance && hasLocation}
+        disabled={!hasLocation}
+        disabledHint="Add a location to sort trials by distance"
+        onClick={() => toggleSort("distance")}
+      />
+
+      <button
+        type="button"
+        className="v4-link-quiet"
+        onClick={clearAll}
+        style={{ marginLeft: "auto" }}
+      >
+        Start over{activeFilters > 0 ? ` (${activeFilters})` : ""}
+      </button>
+    </div>
   );
 }

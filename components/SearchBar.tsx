@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, MapPin, ChevronDown } from "lucide-react";
-import Button3D from "@/components/Button3D";
 
 const DISTANCE_OPTIONS = [
   { value: "25",  label: "25 mi" },
@@ -13,11 +12,21 @@ const DISTANCE_OPTIONS = [
   { value: "any", label: "Any distance" },
 ];
 
-interface SearchBarProps {
+export interface SearchBarProps {
+  /** Seed values for the uncontrolled fields (the results page passes these). */
   initialCondition?: string;
   initialLocation?: string;
   initialDistance?: string;
+  /** Slim single-row variant that sits above the results list. */
   compact?: boolean;
+  /**
+   * Optional controlled condition. Pass it together with `onConditionChange`
+   * to drive the field from outside — the home page's condition chips use this.
+   * Leave both undefined and the field stays uncontrolled, seeded by
+   * `initialCondition`.
+   */
+  condition?: string;
+  onConditionChange?: (value: string) => void;
 }
 
 export default function SearchBar({
@@ -25,12 +34,22 @@ export default function SearchBar({
   initialLocation = "",
   initialDistance = "any",
   compact = false,
+  condition: conditionProp,
+  onConditionChange,
 }: SearchBarProps) {
   const router = useRouter();
-  const [condition, setCondition] = useState(initialCondition);
-  const [location, setLocation]   = useState(initialLocation);
-  const [distance, setDistance]   = useState(initialDistance);
-  const locationRef = useRef<HTMLInputElement>(null);
+  const fieldId = useId();
+  const [conditionState, setConditionState] = useState(initialCondition);
+  const [location, setLocation] = useState(initialLocation);
+  const [distance, setDistance] = useState(initialDistance);
+
+  const isControlled = conditionProp !== undefined;
+  const condition = conditionProp ?? conditionState;
+
+  function updateCondition(value: string) {
+    if (!isControlled) setConditionState(value);
+    onConditionChange?.(value);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,119 +61,144 @@ export default function SearchBar({
     router.push(`/results?${params.toString()}`);
   }
 
+  // The radius only means anything once there is a place to measure from, so
+  // the control stays out of the way until a location is typed.
+  const showDistance = location.trim().length > 0;
+
   /* ── Compact variant (results page top bar) ── */
   if (compact) {
     return (
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
-        <div className="search-card flex flex-1 items-center rounded-xl overflow-hidden">
-          <span className="pl-3" style={{ color: "var(--text-tertiary)" }}>
-            <Search size={15} />
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full">
+        <div className="search-card flex flex-1 min-w-0 items-center overflow-hidden">
+          <span className="pl-3 shrink-0" style={{ color: "var(--text-tertiary)" }}>
+            <Search size={15} aria-hidden="true" />
           </span>
           <input
             type="text"
             value={condition}
-            onChange={(e) => setCondition(e.target.value)}
+            onChange={(e) => updateCondition(e.target.value)}
             placeholder="Condition"
-            className="input-field flex-1 px-2 py-2 text-sm min-w-0"
+            aria-label="Condition, drug or trial ID"
+            autoComplete="off"
+            className="input-field flex-1 min-w-0 px-2 py-2.5 text-sm"
           />
-          <div className="h-5 w-px mx-1" style={{ background: "var(--border)" }} />
-          <span className="pl-2" style={{ color: "var(--text-tertiary)" }}>
-            <MapPin size={15} />
+          <span className="h-5 w-px mx-1 shrink-0" style={{ background: "var(--border)" }} />
+          <span className="pl-2 shrink-0" style={{ color: "var(--text-tertiary)" }}>
+            <MapPin size={15} aria-hidden="true" />
           </span>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Location"
-            className="input-field flex-1 px-2 py-2 text-sm min-w-0"
+            aria-label="Where you can travel"
+            autoComplete="off"
+            className="input-field flex-1 min-w-0 px-2 py-2.5 text-sm"
           />
-          {location && (
+          {showDistance && (
             <>
-              <div className="h-5 w-px mx-1" style={{ background: "var(--border)" }} />
-              <div className="relative flex items-center">
+              <span className="h-5 w-px mx-1 shrink-0" style={{ background: "var(--border)" }} />
+              <div className="relative flex shrink-0 items-center">
                 <select
                   value={distance}
                   onChange={(e) => setDistance(e.target.value)}
-                  className="appearance-none pl-2 pr-6 py-2 text-xs bg-transparent outline-none cursor-pointer"
+                  aria-label="Distance from your location"
+                  className="appearance-none cursor-pointer bg-transparent pl-2 pr-6 py-2.5 text-xs outline-none"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   {DISTANCE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-                <ChevronDown size={11} className="absolute right-1 pointer-events-none" style={{ color: "var(--text-tertiary)" }} />
+                <ChevronDown
+                  size={11}
+                  aria-hidden="true"
+                  className="absolute right-1 pointer-events-none"
+                  style={{ color: "var(--text-tertiary)" }}
+                />
               </div>
             </>
           )}
         </div>
-        <Button3D type="submit" size="sm">Search</Button3D>
+
+        <button
+          type="submit"
+          className="v4-btn v4-btn-sm shrink-0"
+          style={{ paddingBlock: 12, paddingInline: 22, fontSize: "var(--fs-small)" }}
+        >
+          Search
+        </button>
       </form>
     );
   }
 
-  /* ── Full hero variant ── */
+  /* ── Full variant ──
+     4fr / 3fr / auto on wide screens, one column below `md`. The distance
+     select claims a fourth column only once it is revealed, so the default
+     state keeps the two-field proportions the design calls for. */
+  const columns = showDistance
+    ? "md:grid-cols-[4fr_3fr_auto_auto]"
+    : "md:grid-cols-[4fr_3fr_auto]";
+
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="search-card rounded-2xl">
-        {/* Condition */}
-        <div className="flex items-center px-5 pt-4 pb-2 gap-3">
-          <Search size={18} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />
-          <input
-            type="text"
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Tab") { e.preventDefault(); locationRef.current?.focus(); }
-            }}
-            placeholder="Condition or disease (e.g. Alzheimer's, breast cancer)"
-            className="input-field flex-1 text-base"
-            autoFocus
-          />
-        </div>
-
-        {/* Divider */}
-        <div className="mx-5 h-px" style={{ background: "var(--border-subtle)" }} />
-
-        {/* Location */}
-        <div className="flex items-center px-5 pt-2 pb-4 gap-3">
-          <MapPin size={18} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />
-          <input
-            ref={locationRef}
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Location — city, state, or country (optional)"
-            className="input-field flex-1 text-base"
-          />
-          {location && (
-            <div className="relative flex items-center shrink-0">
-              <select
-                value={distance}
-                onChange={(e) => setDistance(e.target.value)}
-                className="appearance-none pl-2 pr-6 py-1 text-sm rounded-lg outline-none cursor-pointer"
-                style={{
-                  background: "var(--accent-bg)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {DISTANCE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={12} className="absolute right-1.5 pointer-events-none" style={{ color: "var(--text-tertiary)" }} />
-            </div>
-          )}
-        </div>
+    <form onSubmit={handleSubmit} className={`grid grid-cols-1 items-end gap-4 ${columns}`}>
+      <div>
+        <label className="v4-label" htmlFor={`${fieldId}-condition`}>
+          Condition, drug or trial ID
+        </label>
+        <input
+          id={`${fieldId}-condition`}
+          type="text"
+          className="v4-input"
+          value={condition}
+          onChange={(e) => updateCondition(e.target.value)}
+          placeholder="Alzheimer's, lecanemab, NCT05221619"
+          autoComplete="off"
+        />
       </div>
 
-      <Button3D
+      <div>
+        <label className="v4-label" htmlFor={`${fieldId}-location`}>
+          Where you can travel
+        </label>
+        <input
+          id={`${fieldId}-location`}
+          type="text"
+          className="v4-input"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="City, state or country"
+          autoComplete="off"
+        />
+      </div>
+
+      {showDistance && (
+        <div style={{ minWidth: 156 }}>
+          <label className="v4-label" htmlFor={`${fieldId}-distance`}>
+            Distance
+          </label>
+          <select
+            id={`${fieldId}-distance`}
+            className="v4-input"
+            style={{ cursor: "pointer" }}
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+          >
+            {DISTANCE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <button
         type="submit"
+        className="v4-btn"
+        style={{ paddingBlock: 13 }}
         disabled={!condition.trim()}
-        className="mt-4 w-full"
       >
-        Search clinical trials
-      </Button3D>
+        Show matches
+      </button>
     </form>
   );
 }

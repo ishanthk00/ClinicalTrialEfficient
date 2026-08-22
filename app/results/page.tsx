@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import { searchTrials } from "@/lib/clinicaltrials";
+import { Suspense, type ReactNode } from "react";
+import { searchTrials, type Trial } from "@/lib/clinicaltrials";
 import { geocodeOrigin } from "@/lib/geocode";
 import {
   enrichTrialsWithDistance,
@@ -11,7 +11,6 @@ import SearchBar from "@/components/SearchBar";
 import SkeletonCard from "@/components/SkeletonCard";
 import MapPanel from "@/components/MapPanel";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 
 interface SearchParams {
   condition?: string;
@@ -24,6 +23,63 @@ interface SearchParams {
   phase?: string;
   ageGroup?: string;
   pageToken?: string;
+}
+
+/** v4 caps emphasis at weight 500 — never `<strong>`'s default 700. */
+function Mark({ children }: { children: ReactNode }) {
+  return <strong style={{ fontWeight: 500, color: "var(--text)" }}>{children}</strong>;
+}
+
+/** Quiet notice card used for the empty / error / no-query states. */
+function QuietCard({
+  heading,
+  children,
+  actions,
+}: {
+  heading: string;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="v4-card p-6 sm:p-8" style={{ maxWidth: 640 }}>
+      <h2 style={{ fontSize: "var(--fs-h4)", fontWeight: 500, marginBottom: 10 }}>
+        {heading}
+      </h2>
+      <p
+        className="measure"
+        style={{ fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)" }}
+      >
+        {children}
+      </p>
+      {actions && <div className="flex flex-wrap items-center gap-3 mt-6">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * "updated 3 days ago" derived from the freshest `lastUpdatePostDate` in the
+ * result set. Returns null when no study carries a date — we say nothing
+ * rather than invent a number.
+ */
+function formatUpdatedClause(trials: Trial[]): string | null {
+  const stamps = trials
+    .map((t) => (t.lastUpdatePostDate ? Date.parse(t.lastUpdatePostDate) : NaN))
+    .filter((n) => !Number.isNaN(n));
+  if (stamps.length === 0) return null;
+
+  const days = Math.max(
+    0,
+    Math.round((Date.now() - Math.max(...stamps)) / 86_400_000)
+  );
+  if (days === 0) return "updated today";
+  if (days === 1) return "updated yesterday";
+  if (days < 30) return `updated ${days} days ago`;
+
+  const months = Math.round(days / 30);
+  if (months < 12) return `updated ${months} month${months === 1 ? "" : "s"} ago`;
+
+  const years = Math.round(days / 365);
+  return `updated ${years} year${years === 1 ? "" : "s"} ago`;
 }
 
 async function ResultsContent({ searchParams }: { searchParams: SearchParams }) {
@@ -42,15 +98,17 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
 
   if (!condition) {
     return (
-      <div className="text-center py-16">
-        <p className="text-[#6B7280]">Enter a condition to search for trials.</p>
-        <Link
-          href="/"
-          className="mt-4 inline-block text-sm text-[#2563EB] hover:underline"
-        >
-          Go back to search
-        </Link>
-      </div>
+      <QuietCard
+        heading="Tell us what to look for"
+        actions={
+          <Link href="/" className="v4-btn-outline v4-btn-sm">
+            Go back to search
+          </Link>
+        }
+      >
+        Enter a condition in the box above and we will look through the registry
+        for you. Nothing is submitted anywhere on your behalf.
+      </QuietCard>
     );
   }
 
@@ -79,12 +137,18 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
     });
   } catch {
     return (
-      <div className="text-center py-16">
-        <p className="text-[#111827] font-medium mb-2">Something went wrong</p>
-        <p className="text-sm text-[#6B7280]">
-          We couldn&apos;t reach ClinicalTrials.gov. Please try again in a moment.
-        </p>
-      </div>
+      <QuietCard
+        heading="We could not reach ClinicalTrials.gov"
+        actions={
+          <Link href="/" className="v4-btn-outline v4-btn-sm">
+            Start a new search
+          </Link>
+        }
+      >
+        The registry did not answer just now. This is almost always brief —
+        nothing about your search was lost, and trying again in a moment
+        usually works.
+      </QuietCard>
     );
   }
 
@@ -101,38 +165,37 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
 
   if (trials.length === 0) {
     return (
-      <div className="text-center py-16 max-w-md mx-auto">
-        <div className="w-12 h-12 bg-gray-100 dark:bg-[#181820] rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-          🔍
-        </div>
-        <h3 className="font-semibold text-[#111827] dark:text-[#EAEAF5] mb-2">No trials found</h3>
-        <p className="text-sm text-[#6B7280] dark:text-[#8686A8] leading-relaxed">
-          No trials found for{" "}
-          <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{condition}</span>
-          {location && (
-            <>
-              {" "}
-              {radiusMiles !== undefined ? `within ${radiusMiles} mi of` : "near"}{" "}
-              <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{location}</span>
-            </>
-          )}
-          . Try broadening your search by removing filters, widening the distance, or searching without a location.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2 justify-center">
-          <Link
-            href={`/results?condition=${encodeURIComponent(condition)}`}
-            className="text-sm px-4 py-2 bg-white dark:bg-[#111118] border border-[#E5E7EB] dark:border-[#222232] rounded-full hover:border-[#2563EB] dark:hover:border-[#5B9BFF] text-[#374151] dark:text-[#CDCDE4] transition-colors"
-          >
-            Search without location
-          </Link>
-          <Link
-            href="/"
-            className="text-sm px-4 py-2 bg-[#2563EB] dark:bg-[#5B9BFF] text-white rounded-full hover:bg-[#1D4ED8] dark:hover:bg-[#7DB2FF] transition-colors"
-          >
-            New search
-          </Link>
-        </div>
-      </div>
+      <QuietCard
+        heading="Nothing matched this search yet"
+        actions={
+          <>
+            {location && (
+              <Link
+                href={`/results?condition=${encodeURIComponent(condition)}`}
+                className="v4-btn-outline v4-btn-sm"
+              >
+                Search without location
+              </Link>
+            )}
+            <Link href="/" className="v4-btn v4-btn-sm">
+              New search
+            </Link>
+          </>
+        }
+      >
+        We could not find a study for <Mark>{condition}</Mark>
+        {location && (
+          <>
+            {radiusMiles !== undefined
+              ? ` within ${radiusMiles} mi of `
+              : " near "}
+            <Mark>{location}</Mark>
+          </>
+        )}
+        {
+          ". Clearing a filter, widening the distance, or searching without a location usually turns something up. Nothing is lost by trying again."
+        }
+      </QuietCard>
     );
   }
 
@@ -148,6 +211,22 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
   if (ageGroup) nextParams.set("ageGroup", ageGroup);
   if (nextPageToken) nextParams.set("pageToken", nextPageToken);
 
+  const sortLabel =
+    sortByDistance && origin
+      ? "Nearest first"
+      : recent === "1"
+        ? "Recently updated"
+        : "Best match";
+  const updatedClause = formatUpdatedClause(trials);
+
+  const remaining =
+    totalCount !== undefined ? Math.max(totalCount - trials.length, 0) : undefined;
+  // The registry hands back one page at a time — the next one is the same size.
+  const nextBatch = Math.max(
+    1,
+    remaining !== undefined ? Math.min(trials.length, remaining) : trials.length
+  );
+
   return (
     <>
       {/* Map: markers come from precise API facility coordinates (no geocoding) */}
@@ -157,61 +236,75 @@ async function ResultsContent({ searchParams }: { searchParams: SearchParams }) 
         radiusMiles={radiusMiles}
       />
 
-      {totalCount !== undefined && (
-        <p className="text-sm text-[#6B7280] dark:text-[#8686A8] mb-5">
-          Showing {trials.length} of {totalCount.toLocaleString()} trials
-          {condition && (
-            <>
-              {" "}for{" "}
-              <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{condition}</span>
-            </>
-          )}
-          {location && (
-            <>
-              {" "}
-              {radiusMiles !== undefined ? `within ${radiusMiles} mi of` : "near"}{" "}
-              <span className="font-medium text-[#111827] dark:text-[#EAEAF5]">{location}</span>
-            </>
-          )}
-          {sortByDistance && origin && (
-            <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--text-secondary)" }}>
-              Nearest first
-            </span>
-          )}
-          {recent === "1" && (
-            <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--text-secondary)" }}>
-              Recently updated
-            </span>
-          )}
+      <div
+        className="flex flex-wrap items-end justify-between"
+        style={{ gap: 24 }}
+      >
+        <h2 style={{ fontSize: "var(--fs-h3)", fontWeight: 500, lineHeight: 1.2 }}>
+          {trials.length} {trials.length === 1 ? "study" : "studies"} may fit
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          {sortLabel}
+          {updatedClause ? ` · ${updatedClause}` : ""}
         </p>
-      )}
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <p
+        className="measure"
+        style={{
+          fontSize: 16,
+          lineHeight: 1.6,
+          color: "var(--text-secondary)",
+          marginTop: 12,
+          marginBottom: 24,
+        }}
+      >
+        {totalCount !== undefined
+          ? `Narrowed from ${totalCount.toLocaleString()} records for `
+          : "Results for "}
+        <Mark>{condition}</Mark>
+        {location && (
+          <>
+            {" near "}
+            <Mark>{location}</Mark>
+          </>
+        )}
+        {". Select a study to read it in plain language."}
+      </p>
+
+      <div className="flex flex-col gap-3">
         {trials.map((trial, index) => (
           <TrialCard key={trial.nctId} trial={trial} index={index} />
         ))}
       </div>
 
       {nextPageToken && (
-        <div className="mt-8 text-center">
-          <Link href={`/results?${nextParams.toString()}`} className="btn-3d btn-3d--sm">
-            <span className="btn-3d__shadow" aria-hidden="true" />
-            <span className="btn-3d__edge" aria-hidden="true" />
-            <span className="btn-3d__front">
-              Load more trials
-              <ChevronRight size={14} aria-hidden="true" />
-            </span>
+        <div className="mt-8 flex flex-col items-center" style={{ gap: 12 }}>
+          <Link href={`/results?${nextParams.toString()}`} className="v4-btn-outline">
+            Show {nextBatch} more
           </Link>
+          {remaining !== undefined && remaining > 0 && (
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--text-secondary)",
+                textAlign: "center",
+              }}
+            >
+              {remaining.toLocaleString()} more records match — no rush, they
+              will still be here later
+            </p>
+          )}
         </div>
       )}
     </>
   );
 }
 
-function SkeletonGrid() {
+function SkeletonList() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: 5 }).map((_, i) => (
         <SkeletonCard key={i} />
       ))}
     </div>
@@ -227,7 +320,7 @@ export default async function ResultsPage({
   const { condition, location, distance } = resolvedParams;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="shell py-10">
       <div className="mb-8">
         <SearchBar
           initialCondition={condition}
@@ -237,19 +330,17 @@ export default async function ResultsPage({
         />
       </div>
 
-      <div className="flex gap-8">
-        <div className="hidden lg:block w-52 shrink-0">
-          <Suspense>
-            <FilterPanel />
-          </Suspense>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <Suspense fallback={<SkeletonGrid />}>
-            <ResultsContent searchParams={resolvedParams} />
-          </Suspense>
-        </div>
+      {/* Filters live outside the results boundary so they stay reachable
+          even when a search comes back empty. */}
+      <div className="mb-8">
+        <Suspense>
+          <FilterPanel />
+        </Suspense>
       </div>
+
+      <Suspense fallback={<SkeletonList />}>
+        <ResultsContent searchParams={resolvedParams} />
+      </Suspense>
     </div>
   );
 }
