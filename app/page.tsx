@@ -37,14 +37,6 @@ const POPULAR_CONDITIONS: { label: string; query: string }[] = [
   { label: "Healthy volunteer",     query: "Healthy Volunteers" },
 ];
 
-const PARTNERS = [
-  "Providence Health Care",
-  "Ted Rogers Centre",
-  "Arthritis Society",
-  "Lupus Foundation",
-  "Diabetes Canada",
-];
-
 const YOU_TELL_US: { label: string; note: string }[] = [
   { label: "Your condition", note: "Diagnosis or symptoms" },
   { label: "Where you are",  note: "How far you can travel" },
@@ -224,30 +216,6 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* ═══ 3 · Partners ═══ */}
-        <section
-          className="shell flex flex-wrap items-baseline"
-          style={{ paddingTop: 48, gap: 40 }}
-        >
-          <p style={{ ...smallNote, maxWidth: "32ch" }}>
-            Used and supported by health systems and patient advocacy groups
-          </p>
-          <div className="flex flex-wrap" style={{ gap: 32 }}>
-            {PARTNERS.map((name) => (
-              <span
-                key={name}
-                style={{
-                  fontSize: "var(--fs-body)",
-                  fontWeight: 500,
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {name}
-              </span>
-            ))}
           </div>
         </section>
 
