@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
     const { messages } = await req.json();
 
     const firstResponse = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       max_tokens: 512,
+      reasoning_effort: "low",
       messages: [{ role: "system", content: SYSTEM }, ...messages],
       tools,
       tool_choice: "auto",
@@ -79,8 +80,9 @@ export async function POST(req: NextRequest) {
       });
 
       const secondResponse = await client.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         max_tokens: 512,
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: SYSTEM },
           ...messages,

@@ -53,7 +53,7 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
     setIsLoading(true);
 
     try {
-      // Slice off the hardcoded greeting — Anthropic requires messages start with user role
+      // Slice off the hardcoded greeting — the API expects messages to start with the user role
       const apiMessages = updatedMessages
         .slice(1)
         .map((m) => ({ role: m.role, content: m.content }));
@@ -65,6 +65,19 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        console.error("AI agent request failed:", res.status, data);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Sorry, I ran into a problem answering that. Please try again in a moment.",
+          },
+        ]);
+        return;
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -80,7 +93,8 @@ export default function AIAgent({ onTrialsFound }: AIAgentProps) {
         onTrialsFound(data.trials, data.searchParams?.condition ?? "");
         setTrialsFound(true);
       }
-    } catch {
+    } catch (err) {
+      console.error("AI agent network error:", err);
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Something went wrong. Please try again." },

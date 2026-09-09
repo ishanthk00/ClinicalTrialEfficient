@@ -34,8 +34,9 @@ Please respond with a JSON object (no markdown, just the raw JSON) with exactly 
 For qualify and notQualify: extract the most important criteria from the eligibility text above. Each bullet should be a complete, plain-English sentence starting with a condition (e.g. "You have been diagnosed with...", "You are between 18 and 65 years old"). Include 3-6 bullets per list. If criteria are not available, return empty arrays.`;
 
     const response = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       max_tokens: 1024,
+      reasoning_effort: "low",
       messages: [{ role: "user", content: prompt }],
     });
 
