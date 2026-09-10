@@ -22,7 +22,6 @@ const FOOTER_NAV: [string, string][] = [
   ["Home", "/"],
   ["Search trials", "/results"],
   ["About", "/about"],
-  ["Reviews", "/reviews"],
   ["Saved trials", "/saved"],
 ];
 

@@ -11,7 +11,7 @@ interface Message {
 }
 
 const GREETING =
-  "Hi! I'm your TrialFind AI — I help you find clinical trials personalized to you.\n\nWhat medical condition are you looking for trials about? You can also share your location to find nearby trials.";
+  "Hi! I'm your TrialFind AI: I help you find clinical trials personalized to you.\n\nWhat medical condition are you looking for trials about? You can also share your location to find nearby trials.";
 
 interface AIAgentProps {
   onTrialsFound: (trials: Trial[], condition: string) => void;

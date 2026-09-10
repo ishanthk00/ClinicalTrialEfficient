@@ -1,12 +1,6 @@
-# MyTrials.ai — Design System Extract (reverse-engineered for learning)
 
-> Source: raw CSS bundles served at `https://mytrials.ai/static/css/landing_page.css` and
-> `.../blog.css` (fetched 2026-06, public unminified CSS). No screenshots/DevTools were
-> used — values below are real declarations pulled verbatim from the served CSS, not
-> guesses. No logos, icons, illustrations, or copy are reproduced here — tokens and
-> structural patterns only.
+**Design System for Trialfind.org: **
 
----
 
 ## 1. `:root` Tokens
 

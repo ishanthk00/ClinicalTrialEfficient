@@ -17,7 +17,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Search", href: "/results", match: "/results" },
   { label: "About", href: "/about", match: "/about" },
   { label: "How matching works", href: "/#matching" },
-  { label: "Reviews", href: "/reviews", match: "/reviews" },
 ];
 
 export default function SiteNav() {
