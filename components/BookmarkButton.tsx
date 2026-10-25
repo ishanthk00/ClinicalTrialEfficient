@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bookmark } from "lucide-react";
-import { isBookmarked, toggleBookmark } from "@/lib/bookmark";
+import { isBookmarked, subscribeBookmarks, toggleBookmark } from "@/lib/bookmark";
 import type { Trial } from "@/lib/clinicaltrials";
 
 export default function BookmarkButton({
@@ -16,7 +16,9 @@ export default function BookmarkButton({
   const [bouncing, setBouncing] = useState(false);
 
   useEffect(() => {
-    setSaved(isBookmarked(trial.nctId));
+    const sync = () => setSaved(isBookmarked(trial.nctId));
+    sync();
+    return subscribeBookmarks(sync);
   }, [trial.nctId]);
 
   function handleClick(e: React.MouseEvent) {

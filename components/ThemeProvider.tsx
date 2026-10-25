@@ -11,7 +11,7 @@ interface ThemeCtx {
 }
 
 const Ctx = createContext<ThemeCtx>({
-  theme: "system",
+  theme: "light",
   resolved: "light",
   setTheme: () => {},
 });
@@ -27,34 +27,15 @@ function applyTheme(isDark: boolean) {
 }
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("light");
   const [resolved, setResolved] = useState<"light" | "dark">("light");
 
-  // Read stored preference once on mount
+  // Default to the light-blue theme regardless of OS dark-mode preference
   useEffect(() => {
-    const stored = localStorage.getItem("trialfind-theme") as Theme | null;
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const sys = mql.matches ? "dark" : "light";
-
-    const t = stored ?? "system";
-    setThemeState(t);
-
-    const isDark = t === "dark" || (t === "system" && sys === "dark");
-    setResolved(isDark ? "dark" : "light");
-    applyTheme(isDark);
-
-    // Update when system preference changes (only relevant when theme === 'system')
-    const handler = (e: MediaQueryListEvent) => {
-      setThemeState((cur) => {
-        if (cur === "system") {
-          setResolved(e.matches ? "dark" : "light");
-          applyTheme(e.matches);
-        }
-        return cur;
-      });
-    };
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
+    setThemeState("light");
+    setResolved("light");
+    applyTheme(false);
+    localStorage.removeItem("trialfind-theme");
   }, []);
 
   function setTheme(t: Theme) {

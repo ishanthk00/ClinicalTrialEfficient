@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
+import { geocodePostalCode, isValidPostalCode, type GeocodeResult } from "@/lib/geocode";
 
 export interface MapMarker {
   key: string;
@@ -75,7 +76,128 @@ function FitBounds({ markers, center }: { markers: MapMarker[]; center?: { lat: 
   return null;
 }
 
+function ZipcodeSearchControl({
+  onLocationResolved,
+}: {
+  onLocationResolved: (location: GeocodeResult) => void;
+}) {
+  const map = useMap();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [zipcode, setZipcode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const query = zipcode.trim();
+    if (!isValidPostalCode(query)) {
+      setError("Please enter a valid zip or postal code.");
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+    try {
+      const locationData = await geocodePostalCode(query, "us", controller.signal);
+
+      if (locationData.boundingBox) {
+        map.flyToBounds(locationData.boundingBox, {
+          padding: [40, 40],
+          maxZoom: 13,
+          duration: 1.2,
+        });
+      } else {
+        map.flyTo([locationData.lat, locationData.lon], 13, { duration: 1.2 });
+      }
+
+      onLocationResolved(locationData);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to fetch location. Please check your connection."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="map-search-container">
+      <form onSubmit={handleSubmit} className="map-search-form" noValidate>
+        <input
+          type="text"
+          value={zipcode}
+          onChange={(e) => {
+            setZipcode(e.target.value);
+            if (error) setError(null);
+          }}
+          className="map-search-input"
+          placeholder="Enter Zip / Postal Code (e.g., 10001)"
+          aria-label="Zip or Postal Code"
+          autoComplete="postal-code"
+        />
+        <button type="submit" className="map-search-btn" disabled={loading}>
+          {loading ? "Searching…" : "Search"}
+        </button>
+      </form>
+      {error && (
+        <div className="map-search-error" role="alert">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchedMarker({ location }: { location: GeocodeResult }) {
+  const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [location]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[location.lat, location.lon]}
+      icon={USER_ICON}
+    >
+      <Popup>
+        <div style={{ minWidth: "160px", maxWidth: "240px" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "var(--text)" }}>
+            Resolved Location
+          </p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)", margin: 0 }}>
+            {location.displayName}
+          </p>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
 export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapProps) {
+  const [searchedLocation, setSearchedLocation] = useState<GeocodeResult | null>(null);
+
   const defaultCenter: [number, number] = center
     ? [center.lat, center.lon]
     : markers[0]
@@ -86,70 +208,75 @@ export default function TrialsMap({ markers, center, radiusMiles }: TrialsMapPro
     radiusMiles !== undefined ? radiusMiles * 1609.34 : undefined;
 
   return (
-    <MapContainer
-      center={defaultCenter}
-      zoom={center ? 8 : 4}
-      style={{ height: "420px", width: "100%" }}
-      className="rounded-2xl z-0"
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-
-      <FitBounds markers={markers} center={center} />
-
-      {center && radiusMeters !== undefined && (
-        <Circle
-          center={[center.lat, center.lon]}
-          radius={radiusMeters}
-          pathOptions={{ color: ORIGIN_COLOR, fillColor: ORIGIN_COLOR, fillOpacity: 0.07, weight: 1.5 }}
+    <div className="map-wrapper">
+      <MapContainer
+        center={defaultCenter}
+        zoom={center ? 8 : 4}
+        style={{ height: "420px", width: "100%" }}
+        className="rounded-2xl z-0"
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-      )}
 
-      {center && (
-        <Marker position={[center.lat, center.lon]} icon={USER_ICON}>
-          <Popup>
-            <span className="text-xs font-medium">Your search location</span>
-          </Popup>
-        </Marker>
-      )}
+        <FitBounds markers={markers} center={center} />
+        <ZipcodeSearchControl onLocationResolved={setSearchedLocation} />
 
-      {markers.map((m) => (
-        <Marker key={m.key} position={[m.lat, m.lon]} icon={TRIAL_ICON}>
-          <Popup>
-            <div style={{ minWidth: "180px", maxWidth: "240px" }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: "var(--text)" }}>
-                {m.trials.length} trial{m.trials.length > 1 ? "s" : ""} at this location
-              </p>
-              {m.distanceKm !== undefined && (
-                <p className="text-[11px] mb-1.5" style={{ color: "var(--text-tertiary)" }}>
-                  ≈ {milesLabel(m.distanceKm)} from your search location
+        {center && radiusMeters !== undefined && (
+          <Circle
+            center={[center.lat, center.lon]}
+            radius={radiusMeters}
+            pathOptions={{ color: ORIGIN_COLOR, fillColor: ORIGIN_COLOR, fillOpacity: 0.07, weight: 1.5 }}
+          />
+        )}
+
+        {center && (
+          <Marker position={[center.lat, center.lon]} icon={USER_ICON}>
+            <Popup>
+              <span className="text-xs font-medium">Your search location</span>
+            </Popup>
+          </Marker>
+        )}
+
+        {searchedLocation && <SearchedMarker location={searchedLocation} />}
+
+        {markers.map((m) => (
+          <Marker key={m.key} position={[m.lat, m.lon]} icon={TRIAL_ICON}>
+            <Popup>
+              <div style={{ minWidth: "180px", maxWidth: "240px" }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: "var(--text)" }}>
+                  {m.trials.length} trial{m.trials.length > 1 ? "s" : ""} at this location
                 </p>
-              )}
-              <ul className="space-y-1">
-                {m.trials.map((t) => (
-                  <li key={t.nctId}>
-                    <Link
-                      href={`/trial/${t.nctId}`}
-                      className="text-xs hover:underline"
-                      style={{ color: "var(--accent)" }}
-                    >
-                      {t.title.length > 60 ? t.title.slice(0, 60) + "…" : t.title}
-                    </Link>
-                    <span
-                      className="ml-1 text-[10px]"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      {t.status.replace(/_/g, " ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+                {m.distanceKm !== undefined && (
+                  <p className="text-[11px] mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                    ≈ {milesLabel(m.distanceKm)} from your search location
+                  </p>
+                )}
+                <ul className="space-y-1">
+                  {m.trials.map((t) => (
+                    <li key={t.nctId}>
+                      <Link
+                        href={`/trial/${t.nctId}`}
+                        className="text-xs hover:underline"
+                        style={{ color: "var(--accent)" }}
+                      >
+                        {t.title.length > 60 ? t.title.slice(0, 60) + "…" : t.title}
+                      </Link>
+                      <span
+                        className="ml-1 text-[10px]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {t.status.replace(/_/g, " ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
   );
 }

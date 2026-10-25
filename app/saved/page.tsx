@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getBookmarks } from "@/lib/bookmark";
+import {
+  getBookmarks,
+  subscribeBookmarks,
+  syncBookmarksWithBackend,
+} from "@/lib/bookmark";
 import TrialCard from "@/components/TrialCard";
 import type { Trial } from "@/lib/clinicaltrials";
 
@@ -13,6 +17,14 @@ export default function SavedPage() {
   useEffect(() => {
     setTrials(getBookmarks());
     setLoaded(true);
+
+    void syncBookmarksWithBackend().then((synced) => {
+      setTrials(synced);
+    });
+
+    return subscribeBookmarks(() => {
+      setTrials(getBookmarks());
+    });
   }, []);
 
   return (

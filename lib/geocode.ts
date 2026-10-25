@@ -2,12 +2,95 @@ export interface GeocodeResult {
   lat: number;
   lon: number;
   displayName: string;
+  boundingBox?: [[number, number], [number, number]];
 }
 
 const cache = new Map<string, GeocodeResult | null>();
 
 function normalizeKey(query: string): string {
   return query.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Validates basic postal code format (supports US ZIP, ZIP+4, Canadian/UK alphanumeric, etc.)
+ */
+export function isValidPostalCode(code: string): boolean {
+  const sanitized = code.trim();
+  return /^[a-zA-Z0-9\s-]{3,10}$/.test(sanitized);
+}
+
+/**
+ * Queries OpenStreetMap Nominatim API for postal code coordinates and bounding box.
+ */
+export async function geocodePostalCode(
+  postalCode: string,
+  countryCode = "us",
+  signal?: AbortSignal
+): Promise<GeocodeResult> {
+  const trimmed = postalCode.trim();
+  if (!isValidPostalCode(trimmed)) {
+    throw new Error("Please enter a valid zip or postal code.");
+  }
+
+  const key = `postal:${countryCode.toLowerCase()}:${normalizeKey(trimmed)}`;
+  if (cache.has(key)) {
+    const cached = cache.get(key);
+    if (cached) return cached;
+  }
+
+  const params = new URLSearchParams({
+    postalcode: trimmed,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "1",
+  });
+
+  if (countryCode) {
+    params.set("countrycodes", countryCode);
+  }
+
+  const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Geocoding service error (${response.status}). Please try again later.`
+    );
+  }
+
+  const results = (await response.json()) as Array<{
+    lat: string;
+    lon: string;
+    display_name: string;
+    boundingbox?: [string, string, string, string];
+  }>;
+
+  if (!Array.isArray(results) || results.length === 0) {
+    throw new Error(`No location found for postal code "${trimmed}".`);
+  }
+
+  const match = results[0];
+  const result: GeocodeResult = {
+    lat: parseFloat(match.lat),
+    lon: parseFloat(match.lon),
+    displayName: match.display_name,
+    boundingBox: match.boundingbox
+      ? [
+          [parseFloat(match.boundingbox[0]), parseFloat(match.boundingbox[2])],
+          [parseFloat(match.boundingbox[1]), parseFloat(match.boundingbox[3])],
+        ]
+      : undefined,
+  };
+
+  cache.set(key, result);
+  return result;
 }
 
 export async function geocodeLocation(

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getBookmarks, subscribeBookmarks } from "@/lib/bookmark";
+import {
+  getBookmarks,
+  subscribeBookmarks,
+  syncBookmarksWithBackend,
+} from "@/lib/bookmark";
 
 type NavItem = {
   label: string;
@@ -26,6 +30,11 @@ export default function SiteNav() {
   // Saved-trial count lives in localStorage, so it can only be read on the
   // client. Stay at `null` until mounted so SSR and first client render match.
   const [savedCount, setSavedCount] = useState<number | null>(null);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void syncBookmarksWithBackend();
+  }, []);
 
   // `path` is an intentional trigger, not a value the effect reads: re-running
   // on navigation refreshes the count after a trial is saved on another page.
